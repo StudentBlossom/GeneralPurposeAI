@@ -73,6 +73,8 @@ for(int i = 0;  i < 5;i++)
 //moeten wel kijken of we die in 2 dictionaries moeten zetten want wat nu als 
 //x-y= een y die al gedefinieerd is?
 
+//alleen probleem als een getal 0 is maar dat kunnen we oplossen
+
 //TODO CODE BYTEMASK met parabyte en paralong
 
 
@@ -84,25 +86,45 @@ for(int i = 0;  i < 5;i++)
 //kunnen we voorkomen dat we xy x-y hebben? geen idee
 
 
-void historymaker (int paradepth,int parastartingpoint,List<string> paraworks)
+// 1100 1010 0100 1010
+// 1010
+//1100 0000 0100 0000
+//0000 0000 0000 0000
+//1111 0000 0000 0000 >> 0000 1111 0000 0000
+//
+ulong bytemask (byte parabyte, ulong paralong) //see the paralong as an array of bytes, 8 of them, and the parabyte as mask to show which bytes are returned
 {
-    if (parastartingpoint< testlist.Count - 1)
+    ulong returnme = paralong;
+    ulong tempmasklong = 0;
+    for(int i = 0; i < 7; i++)
     {
-       
+        if (parabyte -128>=0)//als het meest linkse getal 1 is
+        {
+            tempmasklong = tempmasklong + 255;//voegen we een byte aan 1tjes toe
+        }
+        tempmasklong = (tempmasklong << 8);//en die bewegen we naar links
+        parabyte = (byte)(parabyte << 1);//en de volgende die we moeten bekijken schuiven we nu door
     }
-
-    historymaker(paradepth+1, paraworks);
+    if (parabyte - 128 >= 0)//als het meest rechste getal 0 is
+    {
+        tempmasklong = tempmasklong + 255;
+    }
+    return (returnme&tempmasklong);
 }
 
 
-
-Timer tijd = new Timer(repeater, null, 0, 40);//this makes it so that the function repeater gets called every 40ms
+byte x = 0; 
+Timer tijd = new Timer(repeater, null, 0, 1000);//this makes it so that the function repeater gets called every 40ms
 void repeater(object o)
 {
       Console.Clear();
 
     Console.WriteLine("Welcome");
     Console.WriteLine("");
+    x++;
+    ulong testvalue = bytemask(x, ulong.MaxValue);
+    Console.WriteLine(Convert.ToString((long)testvalue,2));
+    Console.WriteLine(Convert.ToString(x,2));
     for(int i = 0; i < testlist.Count; i++)
     {
         Console.WriteLine(testlist[i]);

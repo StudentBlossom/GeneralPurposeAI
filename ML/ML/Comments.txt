@@ -1,0 +1,46 @@
+dit is gekopierde comments, deze zullen:
+-aantekeningen
+-frustraties
+-inaccuraat
+-dom
+-ideen zijn
+sommige zullen gaan over problemen die totaal niet relevant zijn want ik heb het op een andere manier gedaan
+
+//input is bytes
+//6 bytes
+//lets say 8 bytes at max
+//long = 8 bytes
+//we can remember the input USING BIT MASK
+//of 1 byte
+// DUS als we werken met 8 inputs 
+//moeten we het getal 0000 0101 opzoeken wat X en Z is!!!!!!!!!
+//en 0000 0111 is XYZ en dat kunnen we gebruiken om een bitmask te generen voor die operatie
+//die voeren we uit op de long die we creeren uit de invoer!!!!
+//we moeten wel alle 8 bytes in een long zetten!
+//we kunnen dit principe ook toepassen op de x-y
+//dan moeten we een long voor alle x-y x-z ff kijken hoe we die doen maar dat kan
+//
+//WE KUNNEN DAN OOK EEN LONG CREEREN VAN X-Y&Z WANT 
+//als we de long van de x nemen en die willen we combineren met
+//de z in de invoerlong hebben we 2 longs
+//de ene is (in bytemask) 0000 0001 voor Z en 0000 0010 voor x-y
+//moeten wel kijken of we die in 2 dictionaries moeten zetten want wat nu als 
+//x-y= een y die al gedefinieerd is?
+
+//alleen probleem als een getal 0 is maar dat kunnen we oplossen
+
+//TODO CODE BYTEMASK met parabyte en paralong
+
+//we willen heel veel factoren maken
+//DUS we moeten x,y, z x-y, x-z,y-z, xy, xz,yz z x-y, y x-z, x y-z,xyz
+//als basis nemen we x,y,z,x-y,x-z,z-y
+//daarop moeten we alle gecombineerde variabelen nemen. dus xy,xz,yz
+//kunnen we voorkomen dat we xy x-y hebben? geen idee
+
+
+
+
+// array aan dictionaries
+// x,y,x-y,xy er is een constante hoveelheid van omgevingsfactoren die altijd hetzellfde is
+//elke getal in de array staat voor een van die omgevingsfactoren
+//in de dictionariy zoek je de waarde van die factor en daarin staat waarde die onthouden moet worden

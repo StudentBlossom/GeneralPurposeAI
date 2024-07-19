@@ -4,8 +4,8 @@ using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Threading;
-//TODO clean up the using
-
+//TODO clean up the using beginning
+//wow this code is very minmaxxed
 Console.WriteLine("Welcome");
 Console.WriteLine("Made by blossom");
 Console.WriteLine("");
@@ -48,8 +48,8 @@ for (int i = 0; i < multigame; i++)//to draw the game state
 made multiple to support multiple games at the same time
     */
 
-
-byte t = 3;
+byte[] bytearraything= new byte[] { 1,2,3,4,5,6,7,8};
+ML Mika = new ML(8, 3,gamesize);
 Timer tijd = new Timer(repeater, null, 0, 1000);//this makes it so that the function repeater gets called every 40ms
 void repeater(object o)
 {
@@ -57,35 +57,9 @@ void repeater(object o)
 
     Console.WriteLine("Welcome");
     Console.WriteLine("");
-    Console.WriteLine(Convert.ToString((t),2));
-    Console.WriteLine(t);
-    switch (t)
-    {
-        case 192: //1100 0000
-            t = 5;//0000 0101
-        break;
-        case 160://1010 0000
-            t = 9;
-        break;
-        case 144: //1001 0000
-            t = 17;
-        break;
-        case 136://1000 1000
-            t = 33;
-        break;
-        case 132://1000 0100
-            t =65;
-        break;
-        case 130://1000 0010
-            t = 129;
-        break;
-        default:
-            t = (byte)(t << 1);
-        break;
-    }
-    //it does work (kinda)
-        
+    Console.WriteLine(Convert.ToString(255,2));
 
+    int x = Mika.decision(bytearraything,1);
 
     for (int iy = 0; iy < gamesize; iy++)
     { //y
@@ -118,17 +92,34 @@ Console.ReadLine();
 
 public class ML
 {
-    public static ulong EXP = 0;//elke keer dat een waarde word aangepast word het verschil hierbij opgeteld
+    private ulong EXP = 0;//elke keer dat een waarde word aangepast word het verschil hierbij opgeteld
+    public ulong XP(){//this way you can't set EXP
+        return EXP;
+    }
                                 //de EXP is niet nodig maar geeft een rough idea van hoeveel de AI al gelearnd heeft. hangt af van de gefindetunde waardes
     private static string credits = "BlossomStudio";
 
-    public static int input_size = 6;//max is 8
-    public static int input_size_sq = (byte)Math.Pow(2, input_size);
-    public static int output_size = 4;
-    static Dictionary<ulong, memory> learned = new Dictionary<ulong, memory>();
-    static Dictionary<ulong, bool[]>[] active = new Dictionary<ulong, bool[]>[interaction.twins];//de bool staat voor welke keuzes genomen zijn
-
-    static public class settings
+    public byte[] input;
+    public static int input_size;//max is 8
+    public static int input_size_sq;
+    public static int output_size;
+    private Dictionary<ulong, memory> learned = new Dictionary<ulong, memory>();
+    private Dictionary<ulong, bool[]>[] active_memory = new Dictionary<ulong, bool[]>[interaction.twins];//de bool staat voor welke keuzes genomen zijn
+    private static bool[] default_values_bool_array;
+    public static void initialiazer()
+    {
+        for(int i = 0; i < output_size; i++)
+        {
+            defaultarrays.weight[i] = settings.finetune.start;
+        }
+    }
+    private static class defaultarrays
+    {
+        public static bool[] bools;
+        public static ulong[] weight;
+        public static ulong[] baseweight;
+    }
+    public class settings
     {
         static public class finetune
         {
@@ -139,18 +130,30 @@ public class ML
         public static string name = "Gai"; //Great Artificial Intellegence
         public static bool donkey = true; //hij oonthoud de laatste factoren die hij gevoerd kreeg. en als de keuze direct daarna lijdt is de preciese gecombineerde factoren die keuze naar 0 gezet
         public static bool selfreset = false; //als hij geen opties heeft moet hij kunnen reseten
+        public static bool makesamechoicetwice = true;//if it has the exact same parameters in active work memory disallow the same options
+        public static bool learning = true;
     }
-    static public class interaction
+    public class interaction
     {
         public static bool stuck = false;//this will be set to true when it detects 0 options if selfreset = true
-        public static byte[] inputs;//probs won't be used
-        public static int twins = 3;//should be gamestate
-
+        public byte[] inputs;//probs won't be used
+        public static uint twins;//how many ML you are running parallel
     }
-
-    ML(int parainputsize,int paraoutputsize)
+    public ML(int parainputsize,int paraoutputsize,uint paratwins)
     {
+        interaction.twins = paratwins;
         input_size= parainputsize;
+        input = new byte[input_size];
+        default_values_bool_array = new bool[input_size];
+        for (int i = 0; i < input_size; i++)
+        {
+            defaultarrays.bools[i] = false;
+        }
+        for (int i = 0; i < output_size; i++)
+        {
+            defaultarrays.baseweight[i] = 1;
+        }
+
         output_size = paraoutputsize;
         input_size_sq = (byte)Math.Pow(2, input_size);
     }
@@ -173,15 +176,138 @@ public class ML
 
 
     }
-    public static int decision(byte[] parabytearray, int paraint)
+    public int decision(byte[] parabytearray, int paraint)
     {
+        //inizialize to make sure that parallels work!
         interaction.stuck = false;
-        //make history
+        //Make the active memory
+        ulong inputlong = bytestoulong(parabytearray);
+        bool nonactive_repeat = active_memory[paraint].TryAdd(inputlong,default_values_bool_array);
+        ulong[] weights = defaultarrays.baseweight;
+        if (!nonactive_repeat&&settings.makesamechoicetwice)//if it has been there before AND the settings keep it from making the same choice twice.
+        {
+            bool[] tempboolarray = active_memory[paraint][inputlong];
+            for(int i = 0; i < output_size; i++)
+            {
+                if (tempboolarray[i])
+                {
+                    weights[i] = 0;
+                }
+            }
+        }
 
-        
+
+        //gcd(a, b, c) = gcd(a, gcd(b, c)) = gcd(gcd(a, b), c) = gcd(gcd(a, c), b).
+        //do need definetly figure this out
+
+
+
+
+        for (int i = 0; i < input_size-1; i++)
+        {
+            for(int ii = i + 1; ii < input_size; ii++)
+            {
+
+            }
+        }
+        /**
+        int x = 0;
+        byte tempcomparebyte = 3;
+
+        while (tempcomparebyte != 0)
+        {
+            x = difference(tempcomparebyte, 0, parabytearray);
+            switch (tempcomparebyte)//it never breaks out of here
+            {
+                case 192: //1100 0000
+                    tempcomparebyte = 5;//0000 0101
+                    break;
+                case 160://1010 0000
+                    tempcomparebyte = 9;
+                    break;
+                case 144: //1001 0000
+                    tempcomparebyte = 17;
+                    break;
+                case 136://1000 1000
+                    tempcomparebyte = 33;
+                    break;
+                case 132://1000 0100
+                    tempcomparebyte = 65;
+                    break;
+                case 130://1000 0010
+                    tempcomparebyte = 129;
+                    break;
+                case 129:
+                    tempcomparebyte = 0;
+                    break;
+                default:
+                    tempcomparebyte = (byte)(tempcomparebyte << 1);
+                    break;
+            }
+        } //this entire thing is wortheless
+        **/
+
+        //okay so what if instead of adding up all the options weights 
+        //we grab the biggest one and set that as 1 and the rest as divided by that and then we add all those numbers together
+        //and we use that number (float) to calculate the random number
         return 0;
     }
-    private static ulong[] ML_choice_calculator_aid(long paralong) //de paralong is all the inputs combined into 1
+    private int bigdivider(ulong[]parabytearray) {
+        //gcd(a, b, c) = gcd(a, gcd(b, c)) = gcd(gcd(a, b), c) = gcd(gcd(a, c), b).
+        //remember make exception for arrayvalues of 0
+        
+
+
+
+        return 0;
+    }
+    private int difference(byte parabytemask, byte parasecondarycircumstance, byte[] parabytearray)//parabyte stands for which two are compared from the bytearray
+    {
+        int returnme = (parabytemask<<24);
+        byte byte1 = 0;
+        byte byte2 = 0;
+        bool tempsearchfirst = true;
+        byte tempi = 0;
+        byte tempii = 0;
+        while (tempsearchfirst)
+        {
+            if (parabytemask - 128 >= 0)
+            {
+                byte1 = parabytearray[tempi];
+                tempsearchfirst = false;                
+                tempii = (byte)(tempi+1);
+            }
+            tempi++;
+            parabytemask =(byte) (parabytemask << 1);
+        }
+        while(!tempsearchfirst)
+        {
+            if (parabytemask - 128 >= 0)
+            {
+                byte2 = parabytearray[tempii];
+                tempsearchfirst = true;
+            }
+            tempii++;
+            parabytemask = (byte)(parabytemask << 1);
+
+        }//we now have the 2 we need to compare
+         //TODO the third one
+        Console.WriteLine(byte1+" "+byte2);
+        //       Console.WriteLine(byte1+" "+byte2);
+        if (byte1 > byte2)
+        {
+
+
+
+
+
+        } else if(byte1 < byte2)
+        {
+
+        }
+        return returnme;
+    }
+    private ulong[] ML_choice_calculator_aid(long paralong) //de paralong is all the inputs combined into 1
     {
         ulong[] returnme = new ulong[output_size];
             for(int i=0;i < output_size; i++)
@@ -217,7 +343,7 @@ public class ML
     //dus bij 1100 0000 en 0100 1000
     //is het b-a & e is
 
-    static ulong bytemask(byte parabyte, ulong paralong) //see the paralong as an array of bytes, 8 of them, and the parabyte as mask to show which bytes are returned
+    private ulong bytemask(byte parabyte, ulong paralong) //see the paralong as an array of bytes, 8 of them, and the parabyte as mask to show which bytes are returned
     {
         ulong tempmasklong = 0;
         parabyte = (byte)(parabyte << (8 - input_size));//we get it in format with all the bits centered around the right but we need to check it on the left
@@ -240,21 +366,21 @@ public class ML
                                             // 1010 (de byte)
                                             //1100 0000 0100 0000 (de uitkomst)
     }
-    static ulong bytestoulong(byte[] parabytearray)
+    private ulong bytestoulong(byte[] parabytearray)
     {
         ulong returnme = 0;
         for (int i = 0; i < input_size; i++)
         {
-            returnme = returnme << 8;
+            returnme = returnme << 8;//could be more minmaxxed like bytemask
             returnme = returnme + parabytearray[i];
         }
         return returnme;
     }
-    private static void addhistory(ulong[] paraarray)//TODO
+    private void addhistory()//TODO
     {
         //create memory cells then adds them
     }
-    public static void writehistory ()//TODO
+    public void writehistory ()//TODO
     {
         //make it write the entire dictionary in a .txt file in a way that copy/paste could make it functional
     }

@@ -92,21 +92,28 @@ Console.ReadLine();
 
 public class ML
 {
-    private ulong EXP = 0;//elke keer dat een waarde word aangepast word het verschil hierbij opgeteld
+    private static ulong EXP = 0;//elke keer dat een waarde word aangepast word het verschil hierbij opgeteld
     public ulong XP(){//this way you can't set EXP
         return EXP;
     }
+    public string HELP()
+    {
+        //I know this is absolutely helpless
+        return "Please first take a look at the comments and otherwise visit https://github.com/StudentBlossom/GeneralPurposeAI for any help";
+    }
                                 //de EXP is niet nodig maar geeft een rough idea van hoeveel de AI al gelearnd heeft. hangt af van de gefindetunde waardes
     private static string credits = "BlossomStudio";
-
+    
     public byte[] input;
     public static int input_size;//max is 8
     public static int input_size_sq;
     public static int output_size;
-    private Dictionary<ulong, memory> learned = new Dictionary<ulong, memory>();
-    private Dictionary<ulong, bool[]>[] active_memory = new Dictionary<ulong, bool[]>[interaction.twins];//de bool staat voor welke keuzes genomen zijn
+    private Dictionary<ulong, memory> learned_long = new Dictionary<ulong, memory>();
+
+    private Dictionary<ulong, bool[]>[] active_memory = new Dictionary<ulong, bool[]>[interaction.twins];//de bool staat voor welke keuzes genomen 
+    //we make it an array so that we can work parallels
     private static bool[] default_values_bool_array;
-    public static void initialiazer()
+    public void initialiazer()
     {
         for(int i = 0; i < output_size; i++)
         {
@@ -157,7 +164,6 @@ public class ML
         output_size = paraoutputsize;
         input_size_sq = (byte)Math.Pow(2, input_size);
     }
-    //we make it an array so that we can work parallels
     private class memory//check if this is the best way or if I need to change 
                        //the construct class to take a int[] as para so I can change it. idk this is a dictionary quirk
     {
@@ -173,43 +179,63 @@ public class ML
                 values[i] = ML.settings.finetune.start;
             }
         }
-
-
     }
     public int decision(byte[] parabytearray, int paraint)
     {
         //inizialize to make sure that parallels work!
         interaction.stuck = false;
         //Make the active memory
-        ulong inputlong = bytestoulong(parabytearray);
-        bool nonactive_repeat = active_memory[paraint].TryAdd(inputlong,default_values_bool_array);
-        ulong[] weights = defaultarrays.baseweight;
+        ulong inputlong = bytestoulong(parabytearray);//theinput in long form
+        ulong[] weights = defaultarrays.baseweight;//we make the base array to modify
+
+        bool nonactive_repeat = active_memory[paraint].TryAdd(inputlong,default_values_bool_array);//we add the inputlong into active memory so that later we can change it out
         if (!nonactive_repeat&&settings.makesamechoicetwice)//if it has been there before AND the settings keep it from making the same choice twice.
         {
             bool[] tempboolarray = active_memory[paraint][inputlong];
-            for(int i = 0; i < output_size; i++)
+            for(uint i = 0; i < output_size; i++)
             {
                 if (tempboolarray[i])
                 {
                     weights[i] = 0;
                 }
             }
-        }
+        }//end same choiche check
 
+
+        for(byte i=0; i <input_size_sq; i++)//search the whole ulong dictionary
+        {
+            ulong[] tempulong = learned_long[bytemask(i,inputlong)].values;
+            //no 0 checker so this will 100% return errors!
+            for(uint ii = 0; ii < output_size; ii++) //build up the weight
+            {
+                weights[ii] = weights[ii] * tempulong[ii];
+            }
+            uint biggestdivider = bigdivider(weights);
+            for (uint ii = 0; ii < output_size; ii++)
+            {
+                weights[ii] = weights[ii]/biggestdivider ;
+            }
+        }//end searching the whole ulong dictionary
 
         //gcd(a, b, c) = gcd(a, gcd(b, c)) = gcd(gcd(a, b), c) = gcd(gcd(a, c), b).
         //do need definetly figure this out
 
-
-
-
-        for (int i = 0; i < input_size-1; i++)
+        for (byte i = 0; i < input_size-1; i++)
         {
-            for(int ii = i + 1; ii < input_size; ii++)
+            for(byte ii = (byte)(i + 1); ii < input_size; ii++)
             {
+                for(byte iii = 0; iii < input_size; iii++)
+                {
+                    if (iii != i && iii != ii)
+                    {
+                        if (input[i] != 0 && input[ii] != 0 && input[iii]!=0)
+                        {
 
+                        }
+                    }
+                }
             }
-        }
+        }//end comparison calculator
         /**
         int x = 0;
         byte tempcomparebyte = 3;
@@ -252,7 +278,7 @@ public class ML
         //and we use that number (float) to calculate the random number
         return 0;
     }
-    private int bigdivider(ulong[]parabytearray) {
+    private uint bigdivider(ulong[]parabytearray) {
         //gcd(a, b, c) = gcd(a, gcd(b, c)) = gcd(gcd(a, b), c) = gcd(gcd(a, c), b).
         //remember make exception for arrayvalues of 0
         
@@ -260,6 +286,12 @@ public class ML
 
 
         return 0;
+    }
+    private ulong[] differencecalculator(byte paracompare1, byte paracompare2, byte paracompare3)
+    {
+        ulong[] returnme = new ulong[output_size];
+        //just make the int
+        return returnme;
     }
     private int difference(byte parabytemask, byte parasecondarycircumstance, byte[] parabytearray)//parabyte stands for which two are compared from the bytearray
     {
@@ -316,7 +348,7 @@ public class ML
         }
         for (byte i = 1; i <= input_size_sq; i++) //to check all the code
         {
-            memory x = learned[bytemask(i, (ulong)paralong)];
+            memory x = learned_long[bytemask(i, (ulong)paralong)];
             for (int ii = 0; ii < output_size; ii++)
             {
                 returnme[ii] = returnme[ii] * x.values[i];

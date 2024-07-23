@@ -44,3 +44,12 @@ sommige zullen gaan over problemen die totaal niet relevant zijn want ik heb het
 // x,y,x-y,xy er is een constante hoveelheid van omgevingsfactoren die altijd hetzellfde is
 //elke getal in de array staat voor een van die omgevingsfactoren
 //in de dictionariy zoek je de waarde van die factor en daarin staat waarde die onthouden moet worden
+
+
+            //okay so what if instead of adding up all the options weights 
+            //we grab the biggest one and set that as 1 and the rest as divided by that and then we add all those numbers together
+            //and we use that number (float) to calculate the random number
+
+
+                        //gcd(a, b, c) = gcd(a, gcd(b, c)) = gcd(gcd(a, b), c) = gcd(gcd(a, c), b).
+            //do need definetly figure this out

@@ -26,7 +26,7 @@ int ML_input_size_sq = (byte)Math.Pow(2, ML_input_size);
 //this  does not work for multiple gamesets... yet
 
 //todo put everything into 1 
-uint multigame = 3;//how many games run at the same time!
+uint multigame = 1;//how many games run at the same time!
 uint gamesize = 10;//max should be less then byte.maxvalue (255)
 byte[,,] gamestate = new byte[multigame,gamesize,gamesize];
 
@@ -56,13 +56,13 @@ Timer tijd = new Timer(repeater, null, 0, 1000);//this makes it so that the func
 
 void repeater(object o)
 {
-//        Console.Clear();
-    Console.WriteLine(Mika.decision(bytearraything,0));
+        Console.Clear();
     Console.WriteLine("Welcome");
     Console.WriteLine("");
 //    Console.WriteLine(Convert.ToString(255,2));
 
-    int x = Mika.decision(bytearraything,1);
+    int x = Mika.decision(bytearraything,0);
+    Console.WriteLine(x);
 
 
 
@@ -87,6 +87,7 @@ void repeater(object o)
                 }
             }
         }
+        Console.WriteLine(tempstr);
     }
 
 }

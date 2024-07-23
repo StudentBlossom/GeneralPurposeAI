@@ -18,7 +18,7 @@ using System.Threading.Tasks;
         }
         //de EXP is niet nodig maar geeft een rough idea van hoeveel de AI al gelearnd heeft. hangt af van de gefindetunde waardes
         private static string credits = "BlossomStudio";
-
+        private Random rng = new Random();
         public byte[] input;
         public static int input_size;//max is 8
         public static int input_size_sq;
@@ -122,7 +122,6 @@ using System.Threading.Tasks;
                     }
                 }
             }//end same choiche check
-
             for (byte i = 1; i < input_size_sq; i++)//search the whole ulong dictionary
             {
                 memory tempmemory;
@@ -139,11 +138,7 @@ using System.Threading.Tasks;
                 }
 
             }//end searching the whole ulong dictionary
-
-            //gcd(a, b, c) = gcd(a, gcd(b, c)) = gcd(gcd(a, b), c) = gcd(gcd(a, c), b).
-            //do need definetly figure this out
-
-            for (byte i = 0; i < input_size - 1; i++)//calculate all comparisons
+            for (byte i = 1; i < input_size - 1; i++)//calculate all comparisons
             {
                 for (byte ii = (byte)(i + 1); ii < input_size; ii++)
                 {
@@ -159,49 +154,31 @@ using System.Threading.Tasks;
                     }
                 }
             }//end comparison calculator
-            /**
-            int x = 0;
-            byte tempcomparebyte = 3;
-
-            while (tempcomparebyte != 0)
-            {
-                x = difference(tempcomparebyte, 0, parabytearray);
-                switch (tempcomparebyte)//it never breaks out of here
+             //calculate which choice
+            bool has_no_option = true;
+            for(uint i = 0; i < output_size; i++)
+            {//we check to make sure there is at least one option
+                if (weights[i] > 0)
                 {
-                    case 192: //1100 0000
-                        tempcomparebyte = 5;//0000 0101
-                        break;
-                    case 160://1010 0000
-                        tempcomparebyte = 9;
-                        break;
-                    case 144: //1001 0000
-                        tempcomparebyte = 17;
-                        break;
-                    case 136://1000 1000
-                        tempcomparebyte = 33;
-                        break;
-                    case 132://1000 0100
-                        tempcomparebyte = 65;
-                        break;
-                    case 130://1000 0010
-                        tempcomparebyte = 129;
-                        break;
-                    case 129:
-                        tempcomparebyte = 0;
-                        break;
-                    default:
-                        tempcomparebyte = (byte)(tempcomparebyte << 1);
-                        break;
+                    has_no_option= false;
                 }
-            } //this entire thing is wortheless
-            **/
-
-            //okay so what if instead of adding up all the options weights 
-            //we grab the biggest one and set that as 1 and the rest as divided by that and then we add all those numbers together
-            //and we use that number (float) to calculate the random number
-            return (int)weights[1];
+            }
+            if(has_no_option)
+            {//if it has no options it returns 0 
+                return 0;
+            } else
+            {
+                int temptotalsofar = 1;
+            double tempsum = weights[0];
+                double randomoption = rng.NextDouble();
+                while (tempsum <= randomoption)//we grab a random point between 0 and 1
+                {//and we check in which region it lays
+                    tempsum += weights[temptotalsofar];
+                    temptotalsofar++;
+                }
+                    return temptotalsofar;
+            }
         }
-
         private double[] addweights(double[] paradoubles, ulong[] paraulongs)
         {//this concept was designed in collaboration with Olivia
             double temptotal = 0;
@@ -210,11 +187,16 @@ using System.Threading.Tasks;
                 paradoubles[i] = paradoubles[i] * paraulongs[i];
                 temptotal += paradoubles[i];
             }
-            for (int i = 0; i < output_size; i++)
+            if (temptotal == 0)
             {
-                paradoubles[i] = paradoubles[i] / temptotal;
+                return paradoubles;
+            } else { 
+                for (int i = 0; i < output_size; i++)
+                {
+                    paradoubles[i] = paradoubles[i] / temptotal;
+                }
+                return paradoubles;
             }
-            return paradoubles;
         }
 
 
@@ -228,7 +210,6 @@ using System.Threading.Tasks;
 
             return 1;
         }
-
         private ulong[] differencecalculator(byte paracompare1, byte paracompare2, byte paracompare3)
         {
             ulong[] returnme = new ulong[output_size];

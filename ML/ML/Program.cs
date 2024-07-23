@@ -53,6 +53,7 @@ byte[] bytearraything= new byte[] { 1,2,3,4,5,6,7,8};
 ML Mika = new ML(2, 2,multigame);
 Mika.initialiazer();
 Timer tijd = new Timer(repeater, null, 0, 1000);//this makes it so that the function repeater gets called every 40ms
+
 void repeater(object o)
 {
 //        Console.Clear();
@@ -62,6 +63,9 @@ void repeater(object o)
 //    Console.WriteLine(Convert.ToString(255,2));
 
     int x = Mika.decision(bytearraything,1);
+
+
+
 
     for (int iy = 0; iy < gamesize; iy++)
     { //y
@@ -114,7 +118,6 @@ public class ML
 
     private static Dictionary<ulong, bool[]>[] active_memory;//de bool staat voor welke keuzes genomen 
     //we make it an array so that we can work parallels
-    private static bool[] default_values_bool_array;
     public void initialiazer()
     {
         for(int i = 0; i < output_size; i++)
@@ -139,7 +142,7 @@ public class ML
     {
         public static bool[] bools;
         public static ulong[] weight;
-        public static ulong[] baseweight;
+        public static double[] baseweight;
     }
     internal static class settings
     {
@@ -165,12 +168,11 @@ public class ML
     {
         interaction.twins = paratwins;
         defaultarrays.weight = new ulong[paraoutputsize];
-        defaultarrays.baseweight = new ulong[paraoutputsize];
+        defaultarrays.baseweight = new double[paraoutputsize];
         defaultarrays.bools= new bool[paraoutputsize];
         active_memory = new Dictionary<ulong, bool[]>[paratwins];//de bool staat voor welke keuzes genomen 
         input_size= parainputsize;
         input = new byte[input_size];
-        default_values_bool_array = new bool[input_size];
         output_size = paraoutputsize;
         input_size_sq = (byte)Math.Pow(2, input_size);
     }
@@ -199,7 +201,7 @@ public class ML
         //Make the active memory
         //search the whole ulong dictionary
         ulong inputlong = bytestoulong(parabytearray);//theinput in long form
-        ulong[] weights = defaultarrays.baseweight;//we make the base array to modify
+        double[] weights = defaultarrays.baseweight;//we make the base array to modify
         bool nonactive_repeat = active_memory[paraint].TryAdd(inputlong,defaultarrays.bools);//we add the inputlong into active memory so that later we can change it out
             
         if (!nonactive_repeat&&settings.makesamechoicetwice)//if it has been there before AND the settings keep it from making the same choice twice.
@@ -221,26 +223,8 @@ public class ML
             if (tempnew)
             {
                 ulong[] tempulong = tempmemory.values;
-                //no 0 checker so this will 100% return errors!
-                for (uint ii = 0; ii < output_size; ii++) //build up the weight
-                {
-                    ulong tempendproduct = weights[ii] * tempulong[ii];
-                    if (tempendproduct < weights[ii])
-                    {
-                        //DONT FORGET TO DO A 0 CHECK 
-                        //AFTER I FIND IT IS TO BIG AND I DO DIVIDE I HAVE TO CHECK IF the 0 that were caused by divided but 0 cause they can't be done
-                        //if 1/10000 = 0 It needs to be set to 1 
-                    }
-                    else
-                    {
-                        weights[ii] = tempendproduct;
-                    }
-                }
-                uint biggestdivider = bigdivider(weights);
-                for (uint ii = 0; ii < output_size; ii++)
-                {
-                    weights[ii] = weights[ii] / biggestdivider;
-                }
+                //no 0 checker so this will 100% return wrong values!
+                weights = addweights(weights, tempulong);
             } else
             {
                  learned_long.Add(bytemask(i, inputlong), new memory(i, bytemask(i, inputlong)));
@@ -309,6 +293,23 @@ public class ML
         //and we use that number (float) to calculate the random number
         return (int) weights[1];
     }
+    
+    private double[] addweights(double[] paradoubles, ulong[] paraulongs)
+    {//this concept was designed in collaboration with Olivia
+        double temptotal = 0;
+        for(int i = 0; i < output_size; i++)
+        {
+            paradoubles[i] = paradoubles[i] * paraulongs[i];
+            temptotal += paradoubles[i];
+        }
+        for(int i = 0; i < output_size; i++)
+        {
+            paradoubles[i] = paradoubles[i] / temptotal;
+        }
+        return paradoubles;
+    }
+    
+    
     private uint bigdivider(ulong[]parabytearray) {
         //gcd(a, b, c) = gcd(a, gcd(b, c)) = gcd(gcd(a, b), c) = gcd(gcd(a, c), b).
         //remember make exception for arrayvalues of 0
@@ -318,6 +319,7 @@ public class ML
 
         return 1;
     }
+
     private ulong[] differencecalculator(byte paracompare1, byte paracompare2, byte paracompare3)
     {
         ulong[] returnme = new ulong[output_size];

@@ -20,3 +20,4 @@ ML/ML/obj/Debug/net6.0/ML.csproj.FileListAbsolute.txt
 *.BuildWithSkipAnalyzers
 *.v2
 *.2
+/ML/ML/bin

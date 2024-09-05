@@ -1,12 +1,17 @@
 TODO NOW
-1 get a repeating interval function
-2 build the game
-3.0 build the variable creater (x,y,xy,x-y)
-3.1 figure out how to store this data
-3.2 make an initializer
+1 get a repeating interval function (DONE)
+2 build the game 
+3.0 build the variable creater (x,y,xy,x-y) (DONE)
+3.1 figure out how to store this data (DONE)
+3.2 make an initializer (DONE)
 3.3 build the history maker
-4 q
+4 
 
+
+BUGFIX LIST:
+-if input is 1 the for input_sq might not work
+-change temp names of non temp variables
+-change paraint to paratwin
 
 
 TODO future

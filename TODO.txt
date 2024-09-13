@@ -5,7 +5,6 @@ TODO NOW
 3.1 figure out how to store this data (DONE)
 3.2 make an initializer (DONE)
 3.3 build the history maker
-4 
 
 
 BUGFIX LIST:
@@ -27,3 +26,6 @@ It will first stand still a bit, it remembers what changes. those variables cann
 then moves up, sees what changes, then moves down, and it remembers which choice makes the number go up and which one goes down
 
 then after a few times it will see that the 
+
+-TODO useless
+argue that the decision making code is O(1) (there is no way but I can try to argue)

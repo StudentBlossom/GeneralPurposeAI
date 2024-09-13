@@ -16,7 +16,7 @@ public class GPAI
     }
     public static string Version()
     {
-        return "Alpha 0.8";
+        return "beta 1.0";
     }
     public string HELP()
     {
@@ -30,6 +30,9 @@ public class GPAI
     public static int input_size;//max is 8
     public static int input_size_sq;
     public static int output_size;
+    private static uint comparisons_amount;
+    private static ulong[] previous_exact_input;
+    private static int[] previous_exact_output;
     private Dictionary<ulong, memory> learned_long = new Dictionary<ulong, memory>();
     private Dictionary<uint, memory> learned_short = new Dictionary<uint, memory>();//I know the name should have been learned_int but this is funnier
     private static Dictionary<ulong, bool[]>[] active_memory_long;//de bool staat voor welke keuzes genomen                                                                  //we make it an array so that we can work parallels
@@ -65,9 +68,11 @@ public class GPAI
     {
         public static class finetune
         {
-            public static ulong start = 50; //de start value van alle waarden
-            public static int punish = 1; //hoeveel het getal omlaag gaat als faal
-            public static int reward = 5; //hoeveel het getal omhoog gaat als goed
+            public static ulong start = 1000; //de start value van alle waarden
+            public static int punish_static = 10; //hoeveel het getal omlaag gaat als faal
+            public static int reward_static = 30; //hoeveel het getal omhoog gaat als goed
+            public static int punish_relative = 20; //hoeveel het getal omlaag gaat als faal
+            public static int reward_relative = 50; //hoeveel het getal omhoog gaat als goed
         }
         public static string name = "Gai"; //Great Artificial Intellegence
         public static bool donkey = true; //hij oonthoud de laatste factoren die hij gevoerd kreeg. en als de keuze direct daarna lijdt is de preciese gecombineerde factoren die keuze naar 0 gezet
@@ -87,27 +92,32 @@ public class GPAI
         defaultarrays.weight = new ulong[paraoutputsize];
         defaultarrays.baseweight = new double[paraoutputsize];
         defaultarrays.bools = new bool[paraoutputsize];
+        previous_exact_input = new ulong[paratwins];
+        previous_exact_output = new int[paratwins];
         active_memory_long = new Dictionary<ulong, bool[]>[paratwins];//de bool staat voor welke keuzes genomen 
         active_memory_short = new Dictionary<uint, bool[]>[paratwins];//de bool staat voor welke keuzes genomen 
         input_size = parainputsize;
         input = new byte[input_size];
+
         output_size = paraoutputsize;
+        comparisons_amount = (uint)( ((parainputsize*(parainputsize+1))/2) *(parainputsize-2)+parainputsize);//sum of input * input-2 + input
         input_size_sq = (byte)(Math.Pow(2, input_size) - 1);//I am so sorry
                                                             //hours wasted: 6
     }
-    private class memory//check if this is the best way or if I need to change 
-                        //the construct class to take a int[] as para so I can change it. idk this is a dictionary quirk
+    private class memory//necessary for the donkey principal. I cannot do that any different!!!!
     {
         public byte maskID;
+        public bool[] donkey;
         public ulong[] values;//maybe use maskID and internal value to see if it is a legit or not (no 0 where it should not be 0)
-                              //maybe change values to uint instead?
         public memory(byte parabyte, ulong paralong)
         {
             maskID = parabyte;
             values = new ulong[output_size];
+            donkey = new bool[output_size];
             for (int i = 0; i < output_size; i++)
             {
                 values[i] = settings.finetune.start;
+                donkey[i] = false;
             }
         }
     }
@@ -117,9 +127,13 @@ public class GPAI
         interaction.stuck = false;
 
         //search the whole ulong dictionary
+        bool[] boolarrayfalse = new bool[output_size];
+        double[] weights = new double[output_size];
+        defaultarrays.bools.CopyTo(boolarrayfalse,0);
+        defaultarrays.baseweight.CopyTo(weights,0);//we make the base array to modify
         ulong inputlong = bytestoulong(parabytearray);//theinput in long form
-        double[] weights = defaultarrays.baseweight;//we make the base array to modify
-        bool nonactive_repeat = active_memory_long[paraint].TryAdd(inputlong, defaultarrays.bools);//we add the inputlong into active memory so that later we can change it out
+        bool nonactive_repeat = active_memory_long[paraint].TryAdd(inputlong, boolarrayfalse);//we add the inputlong into active memory so that later we can change it out
+        previous_exact_input[paraint] = inputlong;
 
         if (!nonactive_repeat && !settings.makesamechoicetwice) {//same choice check
             bool[] tempboolarray = active_memory_long[paraint][inputlong];
@@ -136,6 +150,7 @@ public class GPAI
 
         for (byte i = 1; i <= input_size_sq && i != 0; i++)//search the whole ulong dictionary with every combination
         {
+
             //it is <= to deal with the 111111 when input is 8 but after that it goes back to 0 WHICH IS BAD
             //so. what we do is simple we add a !=0 
             //this does not work when input is 1 I think?
@@ -153,6 +168,16 @@ public class GPAI
 
         }//end searching the whole ulong dictionary
 
+
+
+        //okay we need to add a lot of checks here if the amount of inputs are being able to be handled!
+        //I think it should be fine?
+        //((n*(n+1)/2)*(n-2)+n)
+        //(n*(n+1)*0.5*(n-2)+n)
+        //(n*n+n)*(n-2)=(n^3-n^2-2n+2n)/2
+
+        uint[] saved_generated_uint = new uint[comparisons_amount];//The length is 
+        uint saved_generated_uint_counter = 0;
         for (byte i = 0; i < input_size - 1; i++)//calculate all comparisons
         {//full explenation at max indent
             uint tempfirstbyte = (uint)1 << (24 + i);//the first representing bit
@@ -166,17 +191,21 @@ public class GPAI
                     tempfourthbyte = (uint)1 << (16 + i);
                     tempdatabyte1 = (uint)((parabytearray[i] - parabytearray[ii]) << 8);
                 }
-                else
+                else//add a thing for if they are equal?
                 {
                     tempdatabyte1 = (uint)((parabytearray[ii] - parabytearray[i]) << 8);
                     tempfourthbyte = (uint)1 << (16 + ii);
                 }
                 uint tempcompiled = tempfirstbyte + tempfourthbyte + tempsecondbyte;
-                active_memory_short[paraint].TryAdd(tempcompiled, defaultarrays.bools);
+                saved_generated_uint[saved_generated_uint_counter] = tempcompiled;
+                saved_generated_uint_counter++;
+                //                active_memory_short[paraint].TryAdd(tempcompiled, defaultarrays.bools);
                 //handle the int here!!!!!
                 weights = addweights(weights, intweight(tempcompiled));//we first deal with it being general (so x>y y<x)
                 tempcompiled += +tempdatabyte1;
-                active_memory_short[paraint].TryAdd(tempcompiled, defaultarrays.bools);
+                saved_generated_uint[saved_generated_uint_counter] = tempcompiled;
+                saved_generated_uint_counter++;
+//                active_memory_short[paraint].TryAdd(tempcompiled, defaultarrays.bools);
                 weights = addweights(weights, intweight(tempcompiled)); //then we do and get the answer ontop of it
                 for (byte iii = 0; iii < input_size; iii++)
                 {
@@ -187,7 +216,9 @@ public class GPAI
                             uint tempthirdbyte = (uint)1 << (16 + iii);//third represented bit
                             uint tempdatabyte2 = parabytearray[iii];
                             tempcompiled = tempcompiled + tempthirdbyte + tempdatabyte2;//IT WORKS
-                            active_memory_short[paraint].TryAdd(tempcompiled, defaultarrays.bools);
+                            saved_generated_uint[saved_generated_uint_counter] = tempcompiled;
+                            saved_generated_uint_counter++;
+//                            active_memory_short[paraint].TryAdd(tempcompiled, defaultarrays.bools);
                             weights = addweights(weights, intweight(tempcompiled));
                             /*
                             /!\ INFO DUMP
@@ -203,10 +234,9 @@ public class GPAI
                             So the second byte has a positive bit that is in the same position as one of the first bytes
                             That represted bit is the bigger value!
                             
-                            now after we handle that we add a second positive bit.
-                            Again that bit represents a value of input, so again the second bit is positive it means the second input\
+                            now after we handle that we add a second positive bit to the second byte.
+                            Again that bit represents a value of input, so again the second bit is positive it means the second input
                             
-
                             The last 2 bytes are the easiest. the first byte is the difference of the 2 inputs that are represented in the first byte
                             with x-y or y-x depending on the positive bit in the second byte that is also positive in the first byte
                             Now we add to the last byte is simple an input
@@ -222,57 +252,59 @@ public class GPAI
         }//end comparison calculator
          //calculate which choice
         bool has_no_option = true;
-
         //before we calculate a choiche we have to make sure we can make a choice (it's not all 0)
         for (uint i = 0; i < output_size; i++)
         {//we check to make sure there is at least one option
-            Console.WriteLine(weights[i]);
             if (weights[i] > 0)
             {
+//                Console.WriteLine(weights[i].ToString().Substring(0, 4) + "|twin#" + paraint + "|input:" + parabytearray[0] + "," + parabytearray[1] +"|keuze#"+i);
                 has_no_option = false;
             }
         }
 
         if (has_no_option)
         {//if it has no options it returns 0 
+            previous_exact_output[paraint] = 0;
             return 0;
         } else
         {
             //we know the total value is 0
             //we choose a random number between 1 and 0
             //when tempsum is bigger then we know the option selected
-            int temptotalsofar = 1;
+            int decisiontaken = 1;
             double tempsum = weights[0];
             double randomoption = rng.NextDouble();
 
             while (tempsum <= randomoption)//we grab a random point between 0 and 1
             {//and we check in which region it lays
-                tempsum += weights[temptotalsofar];
-                temptotalsofar++;
+                tempsum += weights[decisiontaken];
+                decisiontaken++;
             }
             //out of bounds?
             //one of the generated lengths of the underthing is infact wrongly initialized
-            active_memory_long[paraint][inputlong][temptotalsofar - 1] = true;//remember we have made this choice before!
+            active_memory_long[paraint][inputlong][decisiontaken - 1] = true;//remember we have made this choice before!
+            boolarrayfalse[decisiontaken - 1] = true;
 
-            bool[] tempbool = defaultarrays.bools;
-            tempbool[temptotalsofar - 1] = true;
             for (int i = 0; i < input_size_sq; i++)
             {//add all generated to active memory so that we can use it when applying learning.
-                if (!active_memory_long[paraint].TryAdd(saved_generated_ulong[i], tempbool))
+                bool[] tempboolarray = new bool[output_size];//we copy the pregenerated array with the taken choice already being true.
+                boolarrayfalse.CopyTo(tempboolarray, 0);
+                if (!active_memory_long[paraint].TryAdd(saved_generated_ulong[i], tempboolarray))
                 {//and when it is already added, change the option taken to true
-                 
-                    active_memory_long[paraint][saved_generated_ulong[i]][temptotalsofar - 1] = true;
+                    active_memory_long[paraint][saved_generated_ulong[i]][decisiontaken - 1] = true;
                 } 
             }
-            //we need to do something so that we can set all the saved to true
-            //
-            //           foreach (KeyValuePair<uint, bool[]> i in active_memory_short[paraint])
-            //           {//this does infact not work
-            //               Console.WriteLine(i.Value[temptotalsofar - 1]);
-            //               i.Value[temptotalsofar - 1] = true;
-            //           }
-            return temptotalsofar;//this is the return option.
-        }
+            for(int i = 0; i < comparisons_amount; i++)
+            {//this is the exact same as the thing above but instead for the ints
+                bool[] tempboolarray = new bool[output_size];
+                boolarrayfalse.CopyTo(tempboolarray, 0);
+                if (!active_memory_short[paraint].TryAdd(saved_generated_uint[i],tempboolarray)){
+                    active_memory_short[paraint][saved_generated_uint[i]][decisiontaken - 1] = true;
+                }
+            }
+            previous_exact_output[paraint] = decisiontaken;
+            return decisiontaken;//this is the return option.
+        }   
     }
     private ulong[]  intweight(uint parauint){
         bool tempbool = learned_short.TryAdd(parauint, new memory(0, (ulong)parauint));//we check if it is already in memory
@@ -328,51 +360,117 @@ public class GPAI
         //dus bij 1100 0000 en 0100 1000
         //is het b-a & e is
         public void feedback (bool parasuccess,int paratwinnumber, float paramultiplier)
-    {
-        if (parasuccess)
         {
-            foreach (KeyValuePair<ulong, bool[]> kvp in active_memory_long[paratwinnumber])
+            if (parasuccess)
+            {
+                foreach (KeyValuePair<ulong, bool[]> kvp in active_memory_long[paratwinnumber])
+                {
+                    for (int i = 0; i < output_size; i++)
+                    {
+                        if (kvp.Value[i])
+                        {//THIS DOES NOT WORK????????
+
+                            ulong temppreulong = learned_long[kvp.Key].values[i];
+                            ulong temppostulong = temppreulong + (ulong)(settings.finetune.reward_static *paramultiplier);
+                            if (temppostulong >= temppreulong)//if it doesn't overflows 
+                            {
+                            EXP += (ulong)(settings.finetune.reward_static * paramultiplier);
+                                learned_long[kvp.Key].values[i] = temppostulong;
+                            }
+                            else//it has overflown!
+                            {
+                                learned_long[kvp.Key].values[i] = ulong.MaxValue;
+                            }
+                            //we add the reward
+                            //now we check to make sure it has not looped around
+                        }
+                    }
+                }
+            foreach (KeyValuePair <uint, bool[]> kvp in active_memory_short[paratwinnumber])
             {
                 for (int i = 0; i < output_size; i++)
                 {
                     if (kvp.Value[i])
-                    {//THIS DOES NOT WORK????????
-
-                        ulong temppreulong = learned_long[kvp.Key].values[i];
-                        ulong temppostulong = temppreulong + (ulong)(settings.finetune.reward*paramultiplier);
+                    {
+                        ulong temppreulong = learned_short[kvp.Key].values[i];
+                        ulong temppostulong = temppreulong + (ulong)(settings.finetune.reward_relative * paramultiplier);
                         if (temppostulong >= temppreulong)//if it doesn't overflows 
                         {
-                            learned_long[kvp.Key].values[i] = temppostulong;
+                            EXP += (ulong)(settings.finetune.reward_relative * paramultiplier);
+                            learned_short[kvp.Key].values[i] = temppostulong;
                         }
                         else//it has overflown!
                         {
-                            learned_long[kvp.Key].values[i] = ulong.MaxValue;
+                            learned_short[kvp.Key].values[i] = ulong.MaxValue;
                         }
                         //we add the reward
                         //now we check to make sure it has not looped around
                     }
                 }
+
             }
         }
-        else
-        {
-            foreach (KeyValuePair<ulong, bool[]> kvp in active_memory_long[paratwinnumber])
+            else
+            {
+                foreach (KeyValuePair<ulong, bool[]> kvp in active_memory_long[paratwinnumber])
+                {
+                    for (int i = 0; i < output_size; i++)
+                    {
+                        if (kvp.Value[i])
+                        {
+                            ulong temppreulong = learned_long[kvp.Key].values[i];
+                            ulong temppostulong = temppreulong - (ulong)(settings.finetune.punish_static * paramultiplier);
+                        
+                            if (temppostulong <= temppreulong)//if it does not underflow to positive
+                            {
+                            EXP += (ulong)(settings.finetune.punish_static * paramultiplier);
+
+                            learned_long[kvp.Key].values[i] = temppostulong;
+                            }
+                            else//it has underflown
+                            {
+                                if (learned_long[kvp.Key].donkey[previous_exact_output[paratwinnumber-1]])
+                                {//check if previos exact output is 0 or not!
+                                    learned_long[kvp.Key].values[i] = 0;
+                                }
+                                else
+                                {
+                                    learned_long[kvp.Key].values[i] = 1;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (settings.donkey && previous_exact_output[paratwinnumber] != 0)
+                {
+                    learned_long[previous_exact_input[paratwinnumber]].values[previous_exact_output[paratwinnumber] - 1] = 0;
+                    learned_long[previous_exact_input[paratwinnumber]].donkey[previous_exact_output[paratwinnumber] - 1] = true;
+                }
+            //we need to make sure that the donkey principal can activate 
+            //and down under we need to also make sure it can... somehow
+            //do we use mask id?
+            //how can we use mask id?
+            //1,3,7,15 only the 1 does not work!!!!!!
+            //fuck the 1 inputs
+            foreach (KeyValuePair<uint, bool[]> kvp in active_memory_short[paratwinnumber])
             {
                 for (int i = 0; i < output_size; i++)
                 {
                     if (kvp.Value[i])
-                    {//WHY ARE THE VALUES WRONG OH IT IS 
-                        ulong temppreulong = learned_long[kvp.Key].values[i];
-                        ulong temppostulong = temppreulong - (ulong)(settings.finetune.punish * paramultiplier);
-                        if (temppostulong <= temppreulong)//if it does not underflow to positive
+                    {
+                        ulong temppreulong = learned_short[kvp.Key].values[i];
+                        ulong temppostulong = temppreulong - (ulong)(settings.finetune.punish_relative * paramultiplier);
+                        if (temppostulong <= temppreulong&&temppostulong!=0)//if it doesn't overflows 
                         {
-                            learned_long[kvp.Key].values[i] = temppostulong;
+                            EXP += (ulong)(settings.finetune.punish_relative * paramultiplier);
+                            learned_short[kvp.Key].values[i] = temppostulong;
                         }
-                        else//it has underflown
+                        else//it has overflown!
                         {
-                            learned_long[kvp.Key].values[i] = 1;
+                            learned_short[kvp.Key].values[i] =1;
                         }
-                        kvp.Value[i] = false;//WHY IS THIS WORKING?
+                        //we add the reward
+                        //now we check to make sure it has not looped around
                     }
                 }
             }
@@ -381,7 +479,7 @@ public class GPAI
         active_memory_short[paratwinnumber].Clear();
     }
         private ulong bytemask(byte parabyte, ulong paralong) //see the paralong as an array of bytes, 8 of them, and the parabyte as mask to show which bytes are returned
-        {
+        {// 1000 
             ulong tempmasklong = 0;
             parabyte = (byte)(parabyte << (8 - input_size));//we get it in format with all the bits centered around the right but we need to check it on the left
             for (int i = 0; i < input_size - 1; i++) //we skipped these steps above

@@ -11,9 +11,11 @@ BUGFIX LIST:
 -if input is 1 the for input_sq might not work
 -change temp names of non temp variables
 -change paraint to paratwin
+TODO: redo comments
 
 
 TODO future
+Redo the the ENTIRE comparison system. instead of saving a bit to the second byte we can simply invert the first byte to show which of the 2 is bigger
 With the biggest improvement being the "thinking" 
 which goes like this
 >first test out every move to see which variables change

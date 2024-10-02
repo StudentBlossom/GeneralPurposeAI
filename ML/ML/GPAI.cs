@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Diagnostics.SymbolStore;
 using System.Reflection.Metadata.Ecma335;
+using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 
 public class GPAI
 {
@@ -14,10 +16,7 @@ public class GPAI
     {//this way you can't set EXP
         return EXP;
     }
-    public static string Version()
-    {
-        return "beta 1.0";
-    }
+    public const string "beta 1.0";
     public string HELP()
     {
         //I know this is absolutely helpless
@@ -98,7 +97,6 @@ public class GPAI
         active_memory_short = new Dictionary<uint, bool[]>[paratwins];//de bool staat voor welke keuzes genomen 
         input_size = parainputsize;
         input = new byte[input_size];
-
         output_size = paraoutputsize;
         comparisons_amount = (uint)( ((parainputsize*(parainputsize+1))/2) *(parainputsize-2)+parainputsize);//sum of input * input-2 + input
         input_size_sq = (byte)(Math.Pow(2, input_size) - 1);//I am so sorry
@@ -130,9 +128,9 @@ public class GPAI
         bool[] boolarrayfalse = new bool[output_size];
         double[] weights = new double[output_size];
         defaultarrays.bools.CopyTo(boolarrayfalse,0);
-        defaultarrays.baseweight.CopyTo(weights,0);//we make the base array to modify
+        defaultarrays.baseweight.CopyTo(weights,0);//we make the base arrays to modify
         ulong inputlong = bytestoulong(parabytearray);//theinput in long form
-        bool nonactive_repeat = active_memory_long[paraint].TryAdd(inputlong, boolarrayfalse);//we add the inputlong into active memory so that later we can change it out
+        bool nonactive_repeat = active_memory_long[paraint].TryAdd(inputlong, boolarrayfalse);//we add the inputlong into active memory, IF it is already there we know we need to check makesamechoicetwice
         previous_exact_input[paraint] = inputlong;
 
         if (!nonactive_repeat && !settings.makesamechoicetwice) {//same choice check
@@ -146,11 +144,11 @@ public class GPAI
             }
         }//end same choiche check
 
-        ulong[] saved_generated_ulong = new ulong[input_size_sq];
+        //we use the saved_generated_ulong to save all the generated ulongs(duh) so that later on we can use it after we made a decision before we return it so that we add it to active memory. does not work with 0
+        ulong[] saved_generated_ulong = new ulong[input_size_sq];   
 
         for (byte i = 1; i <= input_size_sq && i != 0; i++)//search the whole ulong dictionary with every combination
         {
-
             //it is <= to deal with the 111111 when input is 8 but after that it goes back to 0 WHICH IS BAD
             //so. what we do is simple we add a !=0 
             //this does not work when input is 1 I think?
@@ -165,16 +163,7 @@ public class GPAI
             }else{
                 learned_long.Add(tempUlongbytemasked, new memory(i, bytemask(i, inputlong)));
             }
-
         }//end searching the whole ulong dictionary
-
-
-
-        //okay we need to add a lot of checks here if the amount of inputs are being able to be handled!
-        //I think it should be fine?
-        //((n*(n+1)/2)*(n-2)+n)
-        //(n*(n+1)*0.5*(n-2)+n)
-        //(n*n+n)*(n-2)=(n^3-n^2-2n+2n)/2
 
         uint[] saved_generated_uint = new uint[comparisons_amount];//The length is 
         uint saved_generated_uint_counter = 0;
@@ -196,16 +185,17 @@ public class GPAI
                     tempdatabyte1 = (uint)((parabytearray[ii] - parabytearray[i]) << 8);
                     tempfourthbyte = (uint)1 << (16 + ii);
                 }
-                uint tempcompiled = tempfirstbyte + tempfourthbyte + tempsecondbyte;
+                uint tempcompiled = tempfirstbyte + tempfourthbyte + tempsecondbyte;//compile the data
+                //save the compiled data
                 saved_generated_uint[saved_generated_uint_counter] = tempcompiled;
                 saved_generated_uint_counter++;
-                //                active_memory_short[paraint].TryAdd(tempcompiled, defaultarrays.bools);
-                //handle the int here!!!!!
+                //use the compiled data
                 weights = addweights(weights, intweight(tempcompiled));//we first deal with it being general (so x>y y<x)
-                tempcompiled += +tempdatabyte1;
+                tempcompiled += +tempdatabyte1;//add more data to the compiled data
+                //save the recompiled data
                 saved_generated_uint[saved_generated_uint_counter] = tempcompiled;
                 saved_generated_uint_counter++;
-//                active_memory_short[paraint].TryAdd(tempcompiled, defaultarrays.bools);
+                //use the recompiled data
                 weights = addweights(weights, intweight(tempcompiled)); //then we do and get the answer ontop of it
                 for (byte iii = 0; iii < input_size; iii++)
                 {
@@ -215,10 +205,11 @@ public class GPAI
                         {
                             uint tempthirdbyte = (uint)1 << (16 + iii);//third represented bit
                             uint tempdatabyte2 = parabytearray[iii];
-                            tempcompiled = tempcompiled + tempthirdbyte + tempdatabyte2;//IT WORKS
+                            //save the info/bits/data
+                            tempcompiled = tempcompiled + tempthirdbyte + tempdatabyte2;
                             saved_generated_uint[saved_generated_uint_counter] = tempcompiled;
                             saved_generated_uint_counter++;
-//                            active_memory_short[paraint].TryAdd(tempcompiled, defaultarrays.bools);
+                            //recompile data and save it
                             weights = addweights(weights, intweight(tempcompiled));
                             /*
                             /!\ INFO DUMP
@@ -257,14 +248,11 @@ public class GPAI
         {//we check to make sure there is at least one option
             if (weights[i] > 0)
             {
-//                Console.WriteLine(weights[i].ToString().Substring(0, 4) + "|twin#" + paraint + "|input:" + parabytearray[0] + "," + parabytearray[1] +"|keuze#"+i);
                 has_no_option = false;
             }
         }
-
         if (has_no_option)
         {//if it has no options it returns 0 
-            previous_exact_output[paraint] = 0;
             return 0;
         } else
         {
@@ -280,8 +268,6 @@ public class GPAI
                 tempsum += weights[decisiontaken];
                 decisiontaken++;
             }
-            //out of bounds?
-            //one of the generated lengths of the underthing is infact wrongly initialized
             active_memory_long[paraint][inputlong][decisiontaken - 1] = true;//remember we have made this choice before!
             boolarrayfalse[decisiontaken - 1] = true;
 
@@ -322,6 +308,7 @@ public class GPAI
         {//this concept was designed in collaboration with Olivia
         //it adds all the current weights, then divides it by the total so it basically becomes a percentage
         //this works, will lose small number details but in general it will work!
+        //please don't ask me about this code or calculations it makes. I did a few test runs, it seems to be accurate, I do not understand it, at all.
             double temptotal = 0;
             for (int i = 0; i < output_size; i++)
             {
@@ -339,43 +326,221 @@ public class GPAI
                 return paradoubles;
             }
         }
-        public void memorytofile()
+    public void memorytofile_debugreadable()
     {
 
+        // Change this 
+        string docPath =
+Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location).Substring(0, 60);//BEWARE THIS ONLY WORKS FOR ME BLOSSOM ALWAYS
+        //Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        Console.WriteLine(docPath);
 
-
-
-    }
-        //een int kan gebruikt worden met de eerste int de bytemask is van welke getallen
-        //het is 4 bytes de eerste is de bytemask de laatste 2 waarvan eentje de - is en de ander een getal?
-        //hoe houden we die uit elkaar? x,y-z en y, x-z?
-        //daar kunnen we de tweede byte voor gebruiken?
-
-        //de tweede byte heeft 1 bit die overeenkomt met de eerste byte 
-        //1100 0000 en 0100 1000
-        //dan weten we dat het de tweede bit de eerste is in de formule van x-y
-        //als het staat voor abdce en het 1100 en 0100 weten we dat het b-a is
-        //we hebben geen negatieve getallen vanwege bytes DUS we kunnen dit gebruiken
-        //de tweede byte weten we dat geen bit 1 is waaar die in de tweedeb yte ook 1 is
-        //dus bij 1100 0000 en 0100 1000
-        //is het b-a & e is
-        public void feedback (bool parasuccess,int paratwinnumber, float paramultiplier)
+        // Write the string array to a new file named "WriteLines.txt".
+        using (StreamWriter outputFile = new StreamWriter(Path.Combine(docPath, "GPAImemoryreadable.txt")))
         {
+            foreach (KeyValuePair<ulong, memory> kvp in learned_long)
+            {
+                byte[] tempbytearray = BitConverter.GetBytes(kvp.Key);
+                string tempboolwrittenout = "Donkey= ";
+                string tempvalueswrittenout = "values=[";
+                string tempbytearraywriteenout = "";
+                for (int i = 0; i < output_size; i++)
+                {
+                    tempvalueswrittenout += kvp.Value.values[i] + ",";
+                    if (kvp.Value.donkey[i])
+                    {
+                        tempboolwrittenout += "t";
+                    }
+                    else
+                    {
+                        tempboolwrittenout += "f";
+                    }
+                }
+                for (int i = 0; i < input_size; i++)
+                {
+                    tempbytearraywriteenout += tempbytearray[i] + ",";
+                }
+                string templine = $"key=({kvp.Key}){tempbytearraywriteenout}  bitmask={Convert.ToString(kvp.Value.maskID, 2)}  {tempvalueswrittenout}]  {tempboolwrittenout}";
+                outputFile.WriteLine(templine);
+            }
+            foreach (KeyValuePair<uint, memory> kvp in learned_short)
+            {
+                byte[] tempbytearray = BitConverter.GetBytes(kvp.Key);
+                string tempboolwrittenout = "Donkey= ";
+                string tempvalueswrittenout = "values=[";
+                string tempbytearraywriteenout = "";
+                for (int i = 0; i < output_size; i++)
+                {
+                    tempvalueswrittenout += kvp.Value.values[i] + ",";
+                    if (kvp.Value.donkey[i])
+                    {
+                        tempboolwrittenout += "t";
+                    }
+                    else
+                    {
+                        tempboolwrittenout += "f";
+                    }
+                }
+                for (int i = 0; i < input_size; i++)
+                {
+                    tempbytearraywriteenout += tempbytearray[i] + ",";
+                }
+                string templine = $"key=({kvp.Key}){tempbytearraywriteenout}  bitmask={Convert.ToString(kvp.Value.maskID, 2)}  {tempvalueswrittenout}]  {tempboolwrittenout}";
+                outputFile.WriteLine(templine);
+            }
+        }
+    }
+    public void memorytofile(string parapath)
+    {
+        /**
+        We start by creating a binary file
+        We only save the memory cells (for now)
+        and we start with ONLY the static since this is testing
+        my idea is that we get an empty space of 1 to save: how many memory cells, and info about the version of the AI that created it
+        and if possible input and output sizes. will have to do the math
+
+        here is the size of 1 cell
+        calculated in bytes
+
+        8 bytes for the key
+        1 byte for byte mask
+        1 byte for booleans
+        8*outputsize bytes
+
+        10+8*outputsize bytes.?
+
+        here is how it is written out
+        8 bytes for the key. 1 byte for the bytemask.
+
+
+        //we are going to assume 2 outputs at the minimum
+        which leaves us with
+        8+1+1+8+8 bytes total
+        26 bytes!
+
+        **/
+        // Change this 
+        //Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
+        // Write the string array to a new file named "WriteLines.txt".
+        using (BinaryWriter outputFile = new BinaryWriter(File.Open(parapath, FileMode.Create)))
+        {
+            foreach (KeyValuePair<ulong, memory> kvp in learned_long)
+            {
+                byte[] tempbytearray = BitConverter.GetBytes(kvp.Key);
+                foreach(byte i in tempbytearray)
+                {
+                    outputFile.Write(i);
+                }
+                outputFile.Write(kvp.Value.maskID);
+                int tempboolfaker = 0; ;
+                
+                for(int i = 0; i < output_size; i++)
+                {
+                    tempbytearray = BitConverter.GetBytes(kvp.Value.values[i]);
+                    foreach (byte ii in tempbytearray)
+                    {
+                        outputFile.Write(ii);
+                    }
+                    if (kvp.Value.donkey[i])
+                    {
+                        tempboolfaker++;
+                    }
+                        tempboolfaker = tempboolfaker << 1;
+                }
+                outputFile.Write((byte)tempboolfaker);
+            }
+            foreach (KeyValuePair<uint, memory> kvp in learned_short)
+            {
+                for (int i = 0; i < output_size; i++)
+                {
+                }
+                for (int i = 0; i < input_size; i++)
+                {
+                }
+            }
+        }
+    }
+
+    public void readfile(string parapath,bool paraoverride) {
+        int bytecounter = 8 + 1 + (8 * output_size)+1;//this is the amount of output size we have in bytes
+        //key=8 + mask 1 + 8*outputsizevalues + 1 donkey
+        //in that order
+        /*
+        //alright here is more important stuff to know:
+        the first bytecounter will be meta info
+        the first 4 bytes is the amount of inputs
+        the second 4 bytes is amount of outputs
+        then 8 bytes as a ulong to amount of static memory
+        then 2 bytes as a memory compatability
+ 
+         
+         */
+        byte[] importedbytes = File.ReadAllBytes(parapath);//get the file
+        for(int i = 0; i < importedbytes.Length; i += bytecounter)//we know each part is the size of 1 bytecounter
+        {
+            byte[] allbytesofonememorycell = new byte[bytecounter];//we get only the relevant bytes
+            Array.Copy(importedbytes, i, allbytesofonememorycell,0, bytecounter);
+
+            ulong[] tempkey = new ulong[output_size + 1];//a ulong array to store both the key and the values
+            tempkey[0] = bytestoulongreverse(allbytesofonememorycell);//save the key
+            for (int ii = 1; ii <= output_size; ii++)//we use this to get all the values
+            {
+                byte[] tempbytearray = new byte[8];
+                Array.Copy(allbytesofonememorycell, 1+ii*8, tempbytearray, 0, 8);//we start at 1 cause 0=key and the +1 is cause of maskID byte
+                tempkey[ii] =bytestoulongreverse(tempbytearray);
+            }
+            memory importedmemory = new memory(allbytesofonememorycell[8], tempkey[0]);//create an empty memory
+            //now we have to try add it
+            bool alreadyknown = learned_long.TryAdd(tempkey[0],importedmemory);//does it already exist?
+            if(alreadyknown)//if it is new we copy it fully
+            {
+                for (int ii = 0; ii < output_size; ii++)
+                {
+                    learned_long[tempkey[0]].values[ii] = tempkey[ii+1];
+
+                }
+            } else if(paraoverride)//if it is not new BUT we can override it, we override it
+            {
+                for (int ii = 0; ii < output_size; ii++)
+                {
+                    learned_long[tempkey[0]].values[ii] = tempkey[ii+1];
+                }
+            } 
+        }
+    }
+
+    //een int kan gebruikt worden met de eerste int de bytemask is van welke getallen
+    //het is 4 bytes de eerste is de bytemask de laatste 2 waarvan eentje de - is en de ander een getal?
+    //hoe houden we die uit elkaar? x,y-z en y, x-z?
+    //daar kunnen we de tweede byte voor gebruiken?
+
+    //de tweede byte heeft 1 bit die overeenkomt met de eerste byte 
+    //1100 0000 en 0100 1000
+    //dan weten we dat het de tweede bit de eerste is in de formule van x-y
+    //als het staat voor abdce en het 1100 en 0100 weten we dat het b-a is
+    //we hebben geen negatieve getallen vanwege bytes DUS we kunnen dit gebruiken
+    //de tweede byte weten we dat geen bit 1 is waaar die in de tweedeb yte ook 1 is
+    //dus bij 1100 0000 en 0100 1000
+    //is het b-a & e is
+    public void feedback (bool parasuccess,int paratwinnumber, float paramultiplier)
+        {
+        //only the first one will be explained as the rest is the same 
             if (parasuccess)
             {
                 foreach (KeyValuePair<ulong, bool[]> kvp in active_memory_long[paratwinnumber])
-                {
+                {//we walk through the active memory
                     for (int i = 0; i < output_size; i++)
                     {
                         if (kvp.Value[i])
-                        {//THIS DOES NOT WORK????????
-
+                        {
+                        //after we find a value we have to check every step that has been taken with those specific circumstance
                             ulong temppreulong = learned_long[kvp.Key].values[i];
                             ulong temppostulong = temppreulong + (ulong)(settings.finetune.reward_static *paramultiplier);
                             if (temppostulong >= temppreulong)//if it doesn't overflows 
                             {
                             EXP += (ulong)(settings.finetune.reward_static * paramultiplier);
-                                learned_long[kvp.Key].values[i] = temppostulong;
+                                learned_long[kvp.Key].values[i] = temppostulong;//then we simply add it. 
                             }
                             else//it has overflown!
                             {
@@ -501,16 +666,29 @@ public class GPAI
                                              // 1010 (de byte)
                                              //1100 0000 0100 0000 (de uitkomst)
         }
-        private ulong bytestoulong(byte[] parabytearray)
+    private ulong bytestoulong(byte[] parabytearray)
+    {
+        //a really important aspect of this function is that it can take arrays bigger then inputsize
+        //because for testing and reading memory it will just get a full 8 array
+        ulong returnme = 0;
+        for (int i = 0; i < input_size; i++)
         {
-            ulong returnme = 0;
-            for (int i = 0; i < input_size; i++)
-            {
-                returnme = returnme << 8;//could be more minmaxxed like bytemask
-                returnme = returnme + parabytearray[i];
-            }
-            return returnme;
+            returnme = returnme << 8;//could be more minmaxxed like bytemask
+            returnme = returnme + parabytearray[i];
         }
+        return returnme;
     }
+    private ulong bytestoulongreverse(byte[] parabytearray)
+    {
+        //a really important aspect of this function is that it can take arrays bigger then inputsize
+        //because for testing and reading memory it will just get a full 8 array
+        ulong returnme = 0;
+        for (int i = 7; i >= 0; i--)
+        {
+            returnme = returnme << 8;//could be more minmaxxed like bytemask
+            returnme = returnme + parabytearray[i];
+        }
+        return returnme;
+    }
+}
 
-  

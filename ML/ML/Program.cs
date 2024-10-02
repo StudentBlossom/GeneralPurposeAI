@@ -7,6 +7,8 @@ using System.Threading;
 using System.Xml.Linq;
 using System.IO;
 using static System.Net.Mime.MediaTypeNames;
+using System.Reflection;
+using System.Data;
 
 //TODO clean up the using beginning
 //wow this code is very minmaxxed
@@ -65,13 +67,18 @@ GPAI.settings.makesamechoicetwice = true;//
 GPAI.settings.donkey= false;
 Mika.initialiazer();
 
+Mika.readfile("C:\\Users\\bloss\\Documents\\GitHub\\SelfLearningAI1.0\\ML\\ML\\bin\\GPAImemoryundreadable2.bin", true);
+Mika.memorytofile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location).Substring(0, 60) + "GPAImemoryundreadable.bin");//BEWARE THIS WILL ONLY WORK FOR MY SPECIFICS
+Mika.memorytofile_debugreadable();
+int amountofturns = 0;
 Timer tijd = new Timer(repeater, null, 0, 750);//this makes it so that the function repeater gets called every 40ms
 void repeater(object o)
 {
     Console.Clear();
     Console.WriteLine("Welcome");
+    Console.WriteLine(amountofturns);
     Console.WriteLine("");
-    //TEST THE TWIN SYSTEM IT DID NOT TEST PROPERLY BEFORE
+    if (amountofturns == 10) { Mika.memorytofile();Mika.memorytofile_debugreadable(); }
 
     //    Console.WriteLine(Convert.ToString(255,2));
     for (int i = 0; i < multigame; i++)
@@ -164,6 +171,7 @@ void repeater(object o)
             }
             Console.WriteLine(tempstr);
         }
+    amountofturns++;
     
 }
 

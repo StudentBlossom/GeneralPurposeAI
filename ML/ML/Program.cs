@@ -78,7 +78,7 @@ void repeater(object o)
     Console.WriteLine("Welcome");
     Console.WriteLine(amountofturns);
     Console.WriteLine("");
-    if (amountofturns == 10) { Mika.memorytofile();Mika.memorytofile_debugreadable(); }
+    if (amountofturns == 10) { Mika.memorytofile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location).Substring(0, 60) + "GPAImemoryundreadable.bin"); Mika.memorytofile_debugreadable(); }
 
     //    Console.WriteLine(Convert.ToString(255,2));
     for (int i = 0; i < multigame; i++)

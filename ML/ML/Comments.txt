@@ -53,3 +53,19 @@ sommige zullen gaan over problemen die totaal niet relevant zijn want ik heb het
 
                         //gcd(a, b, c) = gcd(a, gcd(b, c)) = gcd(gcd(a, b), c) = gcd(gcd(a, c), b).
             //do need definetly figure this out
+
+
+
+                //een int kan gebruikt worden met de eerste int de bytemask is van welke getallen
+    //het is 4 bytes de eerste is de bytemask de laatste 2 waarvan eentje de - is en de ander een getal?
+    //hoe houden we die uit elkaar? x,y-z en y, x-z?
+    //daar kunnen we de tweede byte voor gebruiken?
+
+    //de tweede byte heeft 1 bit die overeenkomt met de eerste byte 
+    //1100 0000 en 0100 1000
+    //dan weten we dat het de tweede bit de eerste is in de formule van x-y
+    //als het staat voor abdce en het 1100 en 0100 weten we dat het b-a is
+    //we hebben geen negatieve getallen vanwege bytes DUS we kunnen dit gebruiken
+    //de tweede byte weten we dat geen bit 1 is waaar die in de tweedeb yte ook 1 is
+    //dus bij 1100 0000 en 0100 1000
+    //is het b-a & e is

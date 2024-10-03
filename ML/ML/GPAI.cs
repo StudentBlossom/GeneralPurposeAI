@@ -1,13 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO;
-using System.Diagnostics.SymbolStore;
-using System.Reflection.Metadata.Ecma335;
-using System.Reflection;
-using System.Security.Cryptography.X509Certificates;
+﻿using System.Reflection;
 
 public class GPAI
 {
@@ -16,14 +7,15 @@ public class GPAI
     {//this way you can't set EXP
         return EXP;
     }
-    public const string "beta 1.0";
+    public const string version = "1.1";
+    public const byte savedatacompatability = 3;
     public string HELP()
     {
         //I know this is absolutely helpless
         return "Please first take a look at the comments and otherwise visit https://github.com/StudentBlossom/GeneralPurposeAI for any help";
     }
     //de EXP is niet nodig maar geeft een rough idea van hoeveel de AI al gelearnd heeft. hangt af van de gefindetunde waardes
-    private static string credits = "BlossomStudio";
+    public const string credits = "BlossomStudio";
     private Random rng = new Random();
     public byte[] input;
     public static int input_size;//max is 8
@@ -98,7 +90,7 @@ public class GPAI
         input_size = parainputsize;
         input = new byte[input_size];
         output_size = paraoutputsize;
-        comparisons_amount = (uint)( ((parainputsize*(parainputsize+1))/2) *(parainputsize-2)+parainputsize);//sum of input * input-2 + input
+        comparisons_amount = (uint)(((parainputsize * (parainputsize + 1)) / 2) * (parainputsize - 2) + parainputsize);//sum of input * input-2 + input
         input_size_sq = (byte)(Math.Pow(2, input_size) - 1);//I am so sorry
                                                             //hours wasted: 6
     }
@@ -107,7 +99,7 @@ public class GPAI
         public byte maskID;
         public bool[] donkey;
         public ulong[] values;//maybe use maskID and internal value to see if it is a legit or not (no 0 where it should not be 0)
-        public memory(byte parabyte, ulong paralong)
+        public memory(byte parabyte)
         {
             maskID = parabyte;
             values = new ulong[output_size];
@@ -127,13 +119,14 @@ public class GPAI
         //search the whole ulong dictionary
         bool[] boolarrayfalse = new bool[output_size];
         double[] weights = new double[output_size];
-        defaultarrays.bools.CopyTo(boolarrayfalse,0);
-        defaultarrays.baseweight.CopyTo(weights,0);//we make the base arrays to modify
+        defaultarrays.bools.CopyTo(boolarrayfalse, 0);
+        defaultarrays.baseweight.CopyTo(weights, 0);//we make the base arrays to modify
         ulong inputlong = bytestoulong(parabytearray);//theinput in long form
         bool nonactive_repeat = active_memory_long[paraint].TryAdd(inputlong, boolarrayfalse);//we add the inputlong into active memory, IF it is already there we know we need to check makesamechoicetwice
         previous_exact_input[paraint] = inputlong;
 
-        if (!nonactive_repeat && !settings.makesamechoicetwice) {//same choice check
+        if (!nonactive_repeat && !settings.makesamechoicetwice)
+        {//same choice check
             bool[] tempboolarray = active_memory_long[paraint][inputlong];
             for (uint i = 0; i < output_size; i++)
             {
@@ -145,7 +138,7 @@ public class GPAI
         }//end same choiche check
 
         //we use the saved_generated_ulong to save all the generated ulongs(duh) so that later on we can use it after we made a decision before we return it so that we add it to active memory. does not work with 0
-        ulong[] saved_generated_ulong = new ulong[input_size_sq];   
+        ulong[] saved_generated_ulong = new ulong[input_size_sq];
 
         for (byte i = 1; i <= input_size_sq && i != 0; i++)//search the whole ulong dictionary with every combination
         {
@@ -156,12 +149,15 @@ public class GPAI
             saved_generated_ulong[i - 1] = tempUlongbytemasked;//we save all the generated so we don't need to do it again later
             memory tempmemory;
             bool tempnew = learned_long.TryGetValue(tempUlongbytemasked, out tempmemory);
-            if (tempnew){
+            if (tempnew)
+            {
                 ulong[] tempulong = tempmemory.values;
                 //no 0 checker so this will 100% return wrong values!
                 weights = addweights(weights, tempulong);
-            }else{
-                learned_long.Add(tempUlongbytemasked, new memory(i, bytemask(i, inputlong)));
+            }
+            else
+            {
+                learned_long.Add(tempUlongbytemasked, new memory(i));
             }
         }//end searching the whole ulong dictionary
 
@@ -186,13 +182,13 @@ public class GPAI
                     tempfourthbyte = (uint)1 << (16 + ii);
                 }
                 uint tempcompiled = tempfirstbyte + tempfourthbyte + tempsecondbyte;//compile the data
-                //save the compiled data
+                                                                                    //save the compiled data
                 saved_generated_uint[saved_generated_uint_counter] = tempcompiled;
                 saved_generated_uint_counter++;
                 //use the compiled data
                 weights = addweights(weights, intweight(tempcompiled));//we first deal with it being general (so x>y y<x)
                 tempcompiled += +tempdatabyte1;//add more data to the compiled data
-                //save the recompiled data
+                                               //save the recompiled data
                 saved_generated_uint[saved_generated_uint_counter] = tempcompiled;
                 saved_generated_uint_counter++;
                 //use the recompiled data
@@ -213,7 +209,7 @@ public class GPAI
                             weights = addweights(weights, intweight(tempcompiled));
                             /*
                             /!\ INFO DUMP
-                            
+
                             So lets imagine the int as 4 bytes
                             We use the first 2 bytes to store information about the second 2 bytes
 
@@ -224,10 +220,10 @@ public class GPAI
                             Now how do we solve this issue? We store a bit in the second byte. 
                             So the second byte has a positive bit that is in the same position as one of the first bytes
                             That represted bit is the bigger value!
-                            
+
                             now after we handle that we add a second positive bit to the second byte.
                             Again that bit represents a value of input, so again the second bit is positive it means the second input
-                            
+
                             The last 2 bytes are the easiest. the first byte is the difference of the 2 inputs that are represented in the first byte
                             with x-y or y-x depending on the positive bit in the second byte that is also positive in the first byte
                             Now we add to the last byte is simple an input
@@ -254,7 +250,8 @@ public class GPAI
         if (has_no_option)
         {//if it has no options it returns 0 
             return 0;
-        } else
+        }
+        else
         {
             //we know the total value is 0
             //we choose a random number between 1 and 0
@@ -278,61 +275,66 @@ public class GPAI
                 if (!active_memory_long[paraint].TryAdd(saved_generated_ulong[i], tempboolarray))
                 {//and when it is already added, change the option taken to true
                     active_memory_long[paraint][saved_generated_ulong[i]][decisiontaken - 1] = true;
-                } 
+                }
             }
-            for(int i = 0; i < comparisons_amount; i++)
+            for (int i = 0; i < comparisons_amount; i++)
             {//this is the exact same as the thing above but instead for the ints
                 bool[] tempboolarray = new bool[output_size];
                 boolarrayfalse.CopyTo(tempboolarray, 0);
-                if (!active_memory_short[paraint].TryAdd(saved_generated_uint[i],tempboolarray)){
+                if (!active_memory_short[paraint].TryAdd(saved_generated_uint[i], tempboolarray))
+                {
                     active_memory_short[paraint][saved_generated_uint[i]][decisiontaken - 1] = true;
                 }
             }
             previous_exact_output[paraint] = decisiontaken;
             return decisiontaken;//this is the return option.
-        }   
+        }
     }
-    private ulong[]  intweight(uint parauint){
-        bool tempbool = learned_short.TryAdd(parauint, new memory(0, (ulong)parauint));//we check if it is already in memory
+    private ulong[] intweight(uint parauint)
+    {
+        bool tempbool = learned_short.TryAdd(parauint, new memory(0));//we check if it is already in memory
         if (tempbool)
         {
             //if it is not we return default
             return defaultarrays.weight;
-        } else
+        }
+        else
         {
             //if it is we return the stored values
             return learned_short[parauint].values;
         }
     }
     private double[] addweights(double[] paradoubles, ulong[] paraulongs)
-        {//this concept was designed in collaboration with Olivia
-        //it adds all the current weights, then divides it by the total so it basically becomes a percentage
-        //this works, will lose small number details but in general it will work!
-        //please don't ask me about this code or calculations it makes. I did a few test runs, it seems to be accurate, I do not understand it, at all.
-            double temptotal = 0;
+    {//this concept was designed in collaboration with Olivia
+     //it adds all the current weights, then divides it by the total so it basically becomes a percentage
+     //this works, will lose small number details but in general it will work!
+     //please don't ask me about this code or calculations it makes. I did a few test runs, it seems to be accurate, I do not understand it, at all.
+        double temptotal = 0;
+        for (int i = 0; i < output_size; i++)
+        {
+            paradoubles[i] = paradoubles[i] * paraulongs[i];
+            temptotal += paradoubles[i];
+        }
+        if (temptotal == 0)
+        {
+            return paradoubles;
+        }
+        else
+        {
             for (int i = 0; i < output_size; i++)
             {
-                paradoubles[i] = paradoubles[i] * paraulongs[i];
-                temptotal += paradoubles[i];
+                paradoubles[i] = paradoubles[i] / temptotal;
             }
-            if (temptotal == 0)
-            {
-                return paradoubles;
-            } else { 
-                for (int i = 0; i < output_size; i++)
-                {
-                    paradoubles[i] = paradoubles[i] / temptotal;
-                }
-                return paradoubles;
-            }
+            return paradoubles;
         }
+    }
     public void memorytofile_debugreadable()
     {
 
         // Change this 
         string docPath =
 Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location).Substring(0, 60);//BEWARE THIS ONLY WORKS FOR ME BLOSSOM ALWAYS
-        //Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                                                                                 //Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         Console.WriteLine(docPath);
 
         // Write the string array to a new file named "WriteLines.txt".
@@ -418,140 +420,199 @@ Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location).Substring(0, 60)
         8+1+1+8+8 bytes total
         26 bytes!
 
+        at the end there is 17 bytes of meta data.
+        it is at the end because then when viewing in hex editor I can still see what is going on.
+
         **/
         // Change this 
         //Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
         // Write the string array to a new file named "WriteLines.txt".
         using (BinaryWriter outputFile = new BinaryWriter(File.Open(parapath, FileMode.Create)))
-        {
+        {//use a binary writer to write a binary file.
             foreach (KeyValuePair<ulong, memory> kvp in learned_long)
-            {
-                byte[] tempbytearray = BitConverter.GetBytes(kvp.Key);
-                foreach(byte i in tempbytearray)
-                {
-                    outputFile.Write(i);
-                }
-                outputFile.Write(kvp.Value.maskID);
+            {//dump the entire long memory into the file
+                outputFile.Write(kvp.Key);//we start with they key
+                outputFile.Write(kvp.Value.maskID);//we then put in the mask
                 int tempboolfaker = 0; ;
-                
-                for(int i = 0; i < output_size; i++)
+                for (int i = 0; i < output_size; i++)
                 {
-                    tempbytearray = BitConverter.GetBytes(kvp.Value.values[i]);
-                    foreach (byte ii in tempbytearray)
-                    {
-                        outputFile.Write(ii);
-                    }
+                    tempboolfaker = tempboolfaker << 1;//then we move it so that the bits represent the bools representing the outputs
+                    outputFile.Write(kvp.Value.values[i]);//we then write the values 
                     if (kvp.Value.donkey[i])
                     {
-                        tempboolfaker++;
+                        tempboolfaker++;//if donkey is true put a positive bit
                     }
-                        tempboolfaker = tempboolfaker << 1;
                 }
                 outputFile.Write((byte)tempboolfaker);
             }
             foreach (KeyValuePair<uint, memory> kvp in learned_short)
             {
+                int tempboolfaker = 0;
+                outputFile.Write(kvp.Key);
+                outputFile.Write(kvp.Value.maskID);
+                //                Console.WriteLine(Convert.ToString(, 2));
+                //IK MIS STUK IN MIJN SAFEFILE?!
                 for (int i = 0; i < output_size; i++)
                 {
+                    tempboolfaker = tempboolfaker << 1;
+                    outputFile.Write(kvp.Value.values[i]);
+                    if (kvp.Value.donkey[i])
+                    {
+                        tempboolfaker++;
+                    }
                 }
-                for (int i = 0; i < input_size; i++)
-                {
-                }
+                outputFile.Write((byte)tempboolfaker);
             }
+            outputFile.Write(input_size);
+            outputFile.Write(output_size);
+            outputFile.Write((long)learned_long.Count);//writes down the size of learned long
+            outputFile.Write(savedatacompatability);
+            outputFile.Close();
         }
     }
-
-    public void readfile(string parapath,bool paraoverride) {
-        int bytecounter = 8 + 1 + (8 * output_size)+1;//this is the amount of output size we have in bytes
+    public void readfile(string parapath, bool paraoverride)
+    {
         //key=8 + mask 1 + 8*outputsizevalues + 1 donkey
         //in that order
         /*
+         I am going to assume: 1 outputs minimum.
+         but the first bytecounter amount is infact used for simply meta data
+        assuming 1 output.
+         * 
         //alright here is more important stuff to know:
         the first bytecounter will be meta info
         the first 4 bytes is the amount of inputs
         the second 4 bytes is amount of outputs
         then 8 bytes as a ulong to amount of static memory
-        then 2 bytes as a memory compatability
- 
-         
+        then 1 bytes as a memory compatability
+        so 8+8+1 = 17 bytes of meta data.         
          */
+
+        const int metadatabyteamount = 17;
+
         byte[] importedbytes = File.ReadAllBytes(parapath);//get the file
-        for(int i = 0; i < importedbytes.Length; i += bytecounter)//we know each part is the size of 1 bytecounter
+        if (importedbytes[importedbytes.Length - 1] != savedatacompatability)
+        {
+            Console.WriteLine("/!\\ WARNING SAVE DATA NOT COMPATIBLE. AI WILL ATTEMPT TO USE IT REGARDLESS!");
+        }
+        byte[] metadatastorage = new byte[8];
+        Array.Copy(importedbytes, importedbytes.Length - metadatabyteamount, metadatastorage, 0, 8);
+        ulong inputandoutput = bytestoulongreverse(metadatastorage);
+        int importedinput = (int)inputandoutput;//the first half is input so 4 bytes
+        int importedoutput_size = (int)(inputandoutput >> 32);//the second half is outputsize also 4 bytes
+        ulong bytecounter = (ulong)(8 + 1 + (8 * importedoutput_size) + 1);//this is the amount of output size we have in bytes
+        //we do +8 cause first 8 is the inputandoutput long the second is the ulong
+        Array.Copy(importedbytes, importedbytes.Length - metadatabyteamount + 8, metadatastorage, 0, 8);
+        ulong staticmemoryamount = bytestoulongreverse(metadatastorage) * (ulong)bytecounter;
+
+        //TODO check the code if i needs to be an int or a ulong
+
+        for (ulong i = 0; i < staticmemoryamount; i += bytecounter)//we know each part is the size of 1 bytecounter
         {
             byte[] allbytesofonememorycell = new byte[bytecounter];//we get only the relevant bytes
-            Array.Copy(importedbytes, i, allbytesofonememorycell,0, bytecounter);
+            Array.Copy(importedbytes, (int)i, allbytesofonememorycell, 0, (int)bytecounter);
 
-            ulong[] tempkey = new ulong[output_size + 1];//a ulong array to store both the key and the values
+            ulong[] tempkey = new ulong[importedoutput_size + 1];//a ulong array to store both the key and the values
             tempkey[0] = bytestoulongreverse(allbytesofonememorycell);//save the key
-            for (int ii = 1; ii <= output_size; ii++)//we use this to get all the values
+            for (int ii = 1; ii <= importedoutput_size; ii++)//we use this to get all the values
             {
                 byte[] tempbytearray = new byte[8];
-                Array.Copy(allbytesofonememorycell, 1+ii*8, tempbytearray, 0, 8);//we start at 1 cause 0=key and the +1 is cause of maskID byte
-                tempkey[ii] =bytestoulongreverse(tempbytearray);
+                Array.Copy(allbytesofonememorycell, 1 + ii * 8, tempbytearray, 0, 8);//we start at 1 cause 0=key and the +1 is cause of maskID byte
+                tempkey[ii] = bytestoulongreverse(tempbytearray);
             }
-            memory importedmemory = new memory(allbytesofonememorycell[8], tempkey[0]);//create an empty memory
-            //now we have to try add it
-            bool alreadyknown = learned_long.TryAdd(tempkey[0],importedmemory);//does it already exist?
-            if(alreadyknown)//if it is new we copy it fully
+            memory importedmemory = new memory(allbytesofonememorycell[8]);//create an empty memory
+                                                                           //now we have to try add it 
+            bool alreadyknown = learned_long.TryAdd(tempkey[0], importedmemory);//does it already exist?
+            if (alreadyknown)//if it is new we copy it fully
             {
-                for (int ii = 0; ii < output_size; ii++)
+                for (int ii = 0; ii < importedoutput_size; ii++)
                 {
-                    learned_long[tempkey[0]].values[ii] = tempkey[ii+1];
+                    learned_long[tempkey[0]].values[ii] = tempkey[ii + 1];
 
                 }
-            } else if(paraoverride)//if it is not new BUT we can override it, we override it
+            }
+            else if (paraoverride)//if it is not new BUT we can override it, we override it
             {
-                for (int ii = 0; ii < output_size; ii++)
+                for (int ii = 0; ii < importedoutput_size; ii++)
                 {
-                    learned_long[tempkey[0]].values[ii] = tempkey[ii+1];
+                    learned_long[tempkey[0]].values[ii] = tempkey[ii + 1];
                 }
-            } 
+            }
+        }
+
+        bytecounter -= 4;//long wordt int dus -4 bytes 
+        for (ulong i = (ulong)staticmemoryamount; i <= (ulong)(importedbytes.Length - metadatabyteamount - (long)bytecounter); i += (ulong)bytecounter)
+        {
+            byte[] allbytesofonememorycell = new byte[bytecounter];//we get only the relevant bytes
+            Array.Copy(importedbytes, (long)i, allbytesofonememorycell, 0, (long)bytecounter);
+
+            ulong[] tempkey = new ulong[importedoutput_size];//a ulong array to store both the key and the values
+            for (int ii = 0; ii < importedoutput_size; ii++)//we use this to get all the values
+            {
+                byte[] tempbytearray = new byte[8];
+                Array.Copy(allbytesofonememorycell, 5 + ii * 8, tempbytearray, 0, 8);//we start at 1 cause 0=key and the +1 is cause of maskID byte
+                tempkey[ii] = bytestoulongreverse(tempbytearray);
+            }
+            //TODO update the comments here to reflect the 4 cause ints
+            //nvm TODO actually fix this...
+
+            byte[] tempbyteforkeyvalue = new byte[4];
+            Array.Copy(importedbytes, (long)i, tempbyteforkeyvalue, 0, 4);
+
+
+
+            uint tempkeyvalue = bytestouintreverse(tempbyteforkeyvalue);
+            memory importedmemory = new memory(allbytesofonememorycell[4]);//create an empty memory
+                                                                           //now we have to try add it 
+            bool alreadyknown = learned_short.TryAdd(tempkeyvalue, importedmemory);//does it already exist?
+            if (alreadyknown)//if it is new we copy it fully
+            {
+                for (int ii = 0; ii < importedoutput_size; ii++)
+                {
+                    learned_short[tempkeyvalue].values[ii] = tempkey[ii];
+
+                }
+            }
+            else if (paraoverride)//if it is not new BUT we can override it, we override it
+            {
+                for (int ii = 0; ii < importedoutput_size; ii++)
+                {
+                    learned_short[tempkeyvalue].values[ii] = tempkey[ii];
+                }
+            }
+
         }
     }
-
-    //een int kan gebruikt worden met de eerste int de bytemask is van welke getallen
-    //het is 4 bytes de eerste is de bytemask de laatste 2 waarvan eentje de - is en de ander een getal?
-    //hoe houden we die uit elkaar? x,y-z en y, x-z?
-    //daar kunnen we de tweede byte voor gebruiken?
-
-    //de tweede byte heeft 1 bit die overeenkomt met de eerste byte 
-    //1100 0000 en 0100 1000
-    //dan weten we dat het de tweede bit de eerste is in de formule van x-y
-    //als het staat voor abdce en het 1100 en 0100 weten we dat het b-a is
-    //we hebben geen negatieve getallen vanwege bytes DUS we kunnen dit gebruiken
-    //de tweede byte weten we dat geen bit 1 is waaar die in de tweedeb yte ook 1 is
-    //dus bij 1100 0000 en 0100 1000
-    //is het b-a & e is
-    public void feedback (bool parasuccess,int paratwinnumber, float paramultiplier)
-        {
+    public void feedback(bool parasuccess, int paratwinnumber, float paramultiplier)
+    {
         //only the first one will be explained as the rest is the same 
-            if (parasuccess)
-            {
-                foreach (KeyValuePair<ulong, bool[]> kvp in active_memory_long[paratwinnumber])
-                {//we walk through the active memory
-                    for (int i = 0; i < output_size; i++)
+        if (parasuccess)
+        {
+            foreach (KeyValuePair<ulong, bool[]> kvp in active_memory_long[paratwinnumber])
+            {//we walk through the active memory
+                for (int i = 0; i < output_size; i++)
+                {
+                    if (kvp.Value[i])
                     {
-                        if (kvp.Value[i])
-                        {
                         //after we find a value we have to check every step that has been taken with those specific circumstance
-                            ulong temppreulong = learned_long[kvp.Key].values[i];
-                            ulong temppostulong = temppreulong + (ulong)(settings.finetune.reward_static *paramultiplier);
-                            if (temppostulong >= temppreulong)//if it doesn't overflows 
-                            {
+                        ulong temppreulong = learned_long[kvp.Key].values[i];
+                        ulong temppostulong = temppreulong + (ulong)(settings.finetune.reward_static * paramultiplier);
+                        if (temppostulong >= temppreulong)//if it doesn't overflows 
+                        {
                             EXP += (ulong)(settings.finetune.reward_static * paramultiplier);
-                                learned_long[kvp.Key].values[i] = temppostulong;//then we simply add it. 
-                            }
-                            else//it has overflown!
-                            {
-                                learned_long[kvp.Key].values[i] = ulong.MaxValue;
-                            }
-                            //we add the reward
-                            //now we check to make sure it has not looped around
+                            learned_long[kvp.Key].values[i] = temppostulong;//then we simply add it. 
                         }
+                        else//it has overflown!
+                        {
+                            learned_long[kvp.Key].values[i] = ulong.MaxValue;
+                        }
+                        //we add the reward
+                        //now we check to make sure it has not looped around
                     }
                 }
-            foreach (KeyValuePair <uint, bool[]> kvp in active_memory_short[paratwinnumber])
+            }
+            foreach (KeyValuePair<uint, bool[]> kvp in active_memory_short[paratwinnumber])
             {
                 for (int i = 0; i < output_size; i++)
                 {
@@ -575,42 +636,42 @@ Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location).Substring(0, 60)
 
             }
         }
-            else
+        else
+        {
+            foreach (KeyValuePair<ulong, bool[]> kvp in active_memory_long[paratwinnumber])
             {
-                foreach (KeyValuePair<ulong, bool[]> kvp in active_memory_long[paratwinnumber])
+                for (int i = 0; i < output_size; i++)
                 {
-                    for (int i = 0; i < output_size; i++)
+                    if (kvp.Value[i])
                     {
-                        if (kvp.Value[i])
+                        ulong temppreulong = learned_long[kvp.Key].values[i];
+                        ulong temppostulong = temppreulong - (ulong)(settings.finetune.punish_static * paramultiplier);
+
+                        if (temppostulong <= temppreulong)//if it does not underflow to positive
                         {
-                            ulong temppreulong = learned_long[kvp.Key].values[i];
-                            ulong temppostulong = temppreulong - (ulong)(settings.finetune.punish_static * paramultiplier);
-                        
-                            if (temppostulong <= temppreulong)//if it does not underflow to positive
-                            {
                             EXP += (ulong)(settings.finetune.punish_static * paramultiplier);
 
                             learned_long[kvp.Key].values[i] = temppostulong;
+                        }
+                        else//it has underflown
+                        {
+                            if (learned_long[kvp.Key].donkey[previous_exact_output[paratwinnumber - 1]])
+                            {//check if previos exact output is 0 or not!
+                                learned_long[kvp.Key].values[i] = 0;
                             }
-                            else//it has underflown
+                            else
                             {
-                                if (learned_long[kvp.Key].donkey[previous_exact_output[paratwinnumber-1]])
-                                {//check if previos exact output is 0 or not!
-                                    learned_long[kvp.Key].values[i] = 0;
-                                }
-                                else
-                                {
-                                    learned_long[kvp.Key].values[i] = 1;
-                                }
+                                learned_long[kvp.Key].values[i] = 1;
                             }
                         }
                     }
                 }
-                if (settings.donkey && previous_exact_output[paratwinnumber] != 0)
-                {
-                    learned_long[previous_exact_input[paratwinnumber]].values[previous_exact_output[paratwinnumber] - 1] = 0;
-                    learned_long[previous_exact_input[paratwinnumber]].donkey[previous_exact_output[paratwinnumber] - 1] = true;
-                }
+            }
+            if (settings.donkey && previous_exact_output[paratwinnumber] != 0)
+            {
+                learned_long[previous_exact_input[paratwinnumber]].values[previous_exact_output[paratwinnumber] - 1] = 0;
+                learned_long[previous_exact_input[paratwinnumber]].donkey[previous_exact_output[paratwinnumber] - 1] = true;
+            }
             //we need to make sure that the donkey principal can activate 
             //and down under we need to also make sure it can... somehow
             //do we use mask id?
@@ -625,14 +686,14 @@ Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location).Substring(0, 60)
                     {
                         ulong temppreulong = learned_short[kvp.Key].values[i];
                         ulong temppostulong = temppreulong - (ulong)(settings.finetune.punish_relative * paramultiplier);
-                        if (temppostulong <= temppreulong&&temppostulong!=0)//if it doesn't overflows 
+                        if (temppostulong <= temppreulong && temppostulong != 0)//if it doesn't overflows 
                         {
                             EXP += (ulong)(settings.finetune.punish_relative * paramultiplier);
                             learned_short[kvp.Key].values[i] = temppostulong;
                         }
                         else//it has overflown!
                         {
-                            learned_short[kvp.Key].values[i] =1;
+                            learned_short[kvp.Key].values[i] = 1;
                         }
                         //we add the reward
                         //now we check to make sure it has not looped around
@@ -643,29 +704,29 @@ Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location).Substring(0, 60)
         active_memory_long[paratwinnumber].Clear();
         active_memory_short[paratwinnumber].Clear();
     }
-        private ulong bytemask(byte parabyte, ulong paralong) //see the paralong as an array of bytes, 8 of them, and the parabyte as mask to show which bytes are returned
-        {// 1000 
-            ulong tempmasklong = 0;
-            parabyte = (byte)(parabyte << (8 - input_size));//we get it in format with all the bits centered around the right but we need to check it on the left
-            for (int i = 0; i < input_size - 1; i++) //we skipped these steps above
+    private ulong bytemask(byte parabyte, ulong paralong) //see the paralong as an array of bytes, 8 of them, and the parabyte as mask to show which bytes are returned
+    {// 1000 
+        ulong tempmasklong = 0;
+        parabyte = (byte)(parabyte << (8 - input_size));//we get it in format with all the bits centered around the right but we need to check it on the left
+        for (int i = 0; i < input_size - 1; i++) //we skipped these steps above
+        {
+            if (parabyte - 128 >= 0)//als het meest linkse bit 1 is
             {
-                if (parabyte - 128 >= 0)//als het meest linkse bit 1 is
-                {
-                    tempmasklong = tempmasklong + 255;//voegen we een byte aan 1tjes toe
-                }
-                tempmasklong = (tempmasklong << 8);//en die bewegen we naar links
-                parabyte = (byte)(parabyte << 1);//en de volgende die we moeten bekijken schuiven we nu door
-                                                 //dit MOET een byte zijn als het een int is dan 1000 word 1 0000 dus groter dan 128
+                tempmasklong = tempmasklong + 255;//voegen we een byte aan 1tjes toe
             }
-            if (parabyte - 128 >= 0)//hier checken we de laatste bit. dit doen we niet in de loop want als we dan de tempmasklong doorschuiven klopt die niet meer
-            {
-                tempmasklong = tempmasklong + 255;//de laatste bit in de maskbyte is de eerste byte in de long
-            }
-            return (paralong & tempmasklong);//we masken de originele en returnen het
-                                             // 1100 1010 0100 1010 (de long)
-                                             // 1010 (de byte)
-                                             //1100 0000 0100 0000 (de uitkomst)
+            tempmasklong = (tempmasklong << 8);//en die bewegen we naar links
+            parabyte = (byte)(parabyte << 1);//en de volgende die we moeten bekijken schuiven we nu door
+                                             //dit MOET een byte zijn als het een int is dan 1000 word 1 0000 dus groter dan 128
         }
+        if (parabyte - 128 >= 0)//hier checken we de laatste bit. dit doen we niet in de loop want als we dan de tempmasklong doorschuiven klopt die niet meer
+        {
+            tempmasklong = tempmasklong + 255;//de laatste bit in de maskbyte is de eerste byte in de long
+        }
+        return (paralong & tempmasklong);//we masken de originele en returnen het
+                                         // 1100 1010 0100 1010 (de long)
+                                         // 1010 (de byte)
+                                         //1100 0000 0100 0000 (de uitkomst)
+    }
     private ulong bytestoulong(byte[] parabytearray)
     {
         //a really important aspect of this function is that it can take arrays bigger then inputsize
@@ -690,5 +751,18 @@ Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location).Substring(0, 60)
         }
         return returnme;
     }
+    private uint bytestouintreverse(byte[] parabytearray)
+    {
+        //a really important aspect of this function is that it can take arrays bigger then inputsize
+        //because for testing and reading memory it will just get a full 8 array
+        uint returnme = 0;
+        for (int i = 3; i >= 0; i--)
+        {
+            returnme = returnme << 8;//could be more minmaxxed like bytemask
+            returnme = returnme + parabytearray[i];
+        }
+        return returnme;
+    }
+
 }
 

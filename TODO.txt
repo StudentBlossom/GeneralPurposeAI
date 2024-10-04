@@ -15,6 +15,12 @@ TODO: redo comments
 
 
 TODO future
+The savedata could infact lose the 1 byte of information about mask id(can be generated again)
+and the memory of the comparisons does not need that 1 byte of donkey booleans. this will save multiple 2n bytes per comparison and 1n bytes 
+we could even forget the donkey byte at non full statics since they will always be 0
+
+add a config file ability.
+
 Redo the the ENTIRE comparison system. instead of saving a bit to the second byte we can simply invert the first byte to show which of the 2 is bigger
 With the biggest improvement being the "thinking" 
 which goes like this

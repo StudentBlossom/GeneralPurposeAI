@@ -7,7 +7,7 @@ public class GPAI
     {//this way you can't set EXP
         return EXP;
     }
-    public const string version = "1.1";
+    public const string version = "1.1.9";
     public const byte savedatacompatability = 3;
     public string HELP()
     {
@@ -24,6 +24,7 @@ public class GPAI
     private static uint comparisons_amount;
     private static ulong[] previous_exact_input;
     private static int[] previous_exact_output;
+    private static byte[][] option_affection;//This will haunt me!
     private Dictionary<ulong, memory> learned_long = new Dictionary<ulong, memory>();
     private Dictionary<uint, memory> learned_short = new Dictionary<uint, memory>();//I know the name should have been learned_int but this is funnier
     private static Dictionary<ulong, bool[]>[] active_memory_long;//de bool staat voor welke keuzes genomen                                                                  //we make it an array so that we can work parallels
@@ -33,14 +34,13 @@ public class GPAI
         for (int i = 0; i < output_size; i++)
         {
             defaultarrays.weight[i] = settings.finetune.start;
-        }
-        for (int i = 0; i < output_size; i++)
-        {
             defaultarrays.bools[i] = false;
-        }
-        for (int i = 0; i < output_size; i++)
-        {
             defaultarrays.baseweight[i] = 1;
+            option_affection[i] = new byte[input_size];
+            for (int ii = 0; ii < input_size; ii++)
+            {
+                option_affection[i][ii] = 0;//0=untested
+            }
         }
         for (int i = 0; i < interaction.twins; i++)
         {
@@ -85,6 +85,7 @@ public class GPAI
         defaultarrays.bools = new bool[paraoutputsize];
         previous_exact_input = new ulong[paratwins];
         previous_exact_output = new int[paratwins];
+        option_affection = new byte[paraoutputsize][];
         active_memory_long = new Dictionary<ulong, bool[]>[paratwins];//de bool staat voor welke keuzes genomen 
         active_memory_short = new Dictionary<uint, bool[]>[paratwins];//de bool staat voor welke keuzes genomen 
         input_size = parainputsize;
@@ -328,17 +329,15 @@ public class GPAI
             return paradoubles;
         }
     }
-    public void memorytofile_debugreadable()
+    public void memorytofile_debugreadable(string parapath)
     {
 
         // Change this 
-        string docPath =
-Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location).Substring(0, 60);//BEWARE THIS ONLY WORKS FOR ME BLOSSOM ALWAYS
-                                                                                 //Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        Console.WriteLine(docPath);
+        //Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location).Substring(0, 60);//BEWARE THIS ONLY WORKS FOR ME BLOSSOM ALWAYS
+        //Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
         // Write the string array to a new file named "WriteLines.txt".
-        using (StreamWriter outputFile = new StreamWriter(Path.Combine(docPath, "GPAImemoryreadable.txt")))
+        using (StreamWriter outputFile = new StreamWriter(Path.Combine(parapath, "GPAImemoryreadable.txt")))
         {
             foreach (KeyValuePair<ulong, memory> kvp in learned_long)
             {
@@ -490,9 +489,10 @@ Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location).Substring(0, 60)
          */
 
         const int metadatabyteamount = 17;
+        //the meta data amount is simple: the amount of bytes in the file dedicated to non memory.
 
-        byte[] importedbytes = File.ReadAllBytes(parapath);//get the file
-        if (importedbytes[importedbytes.Length - 1] != savedatacompatability)
+        byte[] importedbytes = File.ReadAllBytes(parapath);//we get all the bytes from the file.
+        if (importedbytes[importedbytes.Length - 1] != savedatacompatability)//the final byte is always version byte.
         {
             Console.WriteLine("/!\\ WARNING SAVE DATA NOT COMPATIBLE. AI WILL ATTEMPT TO USE IT REGARDLESS!");
         }
@@ -502,11 +502,12 @@ Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location).Substring(0, 60)
         int importedinput = (int)inputandoutput;//the first half is input so 4 bytes
         int importedoutput_size = (int)(inputandoutput >> 32);//the second half is outputsize also 4 bytes
         ulong bytecounter = (ulong)(8 + 1 + (8 * importedoutput_size) + 1);//this is the amount of output size we have in bytes
-        //we do +8 cause first 8 is the inputandoutput long the second is the ulong
+        //we do +8 cause first 8 is the inputandoutput long the second is the ulong also because it is the end.
         Array.Copy(importedbytes, importedbytes.Length - metadatabyteamount + 8, metadatastorage, 0, 8);
-        ulong staticmemoryamount = bytestoulongreverse(metadatastorage) * (ulong)bytecounter;
+        ulong staticmemoryamount = bytestoulongreverse(metadatastorage) * (ulong)bytecounter;//this is how we know
 
         //TODO check the code if i needs to be an int or a ulong
+        //yeah so I have no idea I checked again but I am simply confused what the better option is here. Who knows maybe there simply is no optimal solution
 
         for (ulong i = 0; i < staticmemoryamount; i += bytecounter)//we know each part is the size of 1 bytecounter
         {
